@@ -1,5 +1,8 @@
 {
     "name": "vyletien/trac-nghiem",
     "description": "Online Examination System",
-    "require": {}
+    "require": {
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
+    }
 }
