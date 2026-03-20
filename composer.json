@@ -1,7 +1,5 @@
 {
     "name": "vyletien/trac-nghiem",
     "description": "Online Examination System",
-    "require": {
-        "php": "^8.1"
-    }
+    "require": {}
 }
