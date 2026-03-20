@@ -1,0 +1,7 @@
+{
+    "name": "trac-nghiem",
+    "description": "Online Examination System",
+    "require": {
+        "php": ">=7.4"
+    }
+}

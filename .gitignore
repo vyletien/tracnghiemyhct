@@ -1,0 +1,17 @@
+# PHP
+vendor/
+composer.lock
+.env
+
+# Backup/Zip
+TracNghiem.zip
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
