@@ -14,6 +14,7 @@ if ($id) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     $title = $_POST['title'];
     $description = $_POST['description'] ?? '';
     // handle empty datetime
@@ -25,19 +26,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $shuffle_answers = isset($_POST['shuffle_answers']) ? 1 : 0;
     $show_results = isset($_POST['show_results']) ? 1 : 0;
     $enable_prediction = isset($_POST['enable_prediction']) ? 1 : 0;
-    $allow_multiple = isset($_POST['allow_multiple']) ? 1 : 0;
+    $attempt_mode = (int)($_POST['attempt_mode'] ?? 0);
+    if (!in_array($attempt_mode, [0, 1, 2], true)) {
+        $attempt_mode = 0;
+    }
+    // Keep the legacy flag in sync for older code/data.
+    $allow_multiple = $attempt_mode > 0 ? 1 : 0;
 
     if ($id) {
-        $stmt = $pdo->prepare("UPDATE exams SET title=?, description=?, start_time=?, end_time=?, duration_minutes=?, shuffle_questions=?, shuffle_answers=?, show_results=?, enable_prediction=?, allow_multiple=? WHERE id=?");
-        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $allow_multiple, $id]);
+        $stmt = $pdo->prepare("UPDATE exams SET title=?, description=?, start_time=?, end_time=?, duration_minutes=?, shuffle_questions=?, shuffle_answers=?, show_results=?, enable_prediction=?, allow_multiple=?, attempt_mode=? WHERE id=?");
+        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $allow_multiple, $attempt_mode, $id]);
         redirect("exam_questions.php?id=$id");
     } else {
-        $stmt = $pdo->prepare("INSERT INTO exams (title, description, start_time, end_time, duration_minutes, shuffle_questions, shuffle_answers, show_results, enable_prediction, allow_multiple) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $allow_multiple]);
+        $stmt = $pdo->prepare("INSERT INTO exams (title, description, start_time, end_time, duration_minutes, shuffle_questions, shuffle_answers, show_results, enable_prediction, allow_multiple, attempt_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $allow_multiple, $attempt_mode]);
         $new_id = $pdo->lastInsertId();
         redirect("exam_questions.php?id=$new_id");
     }
 }
+
+// Existing exams only have the legacy allow_multiple flag.
+$attempt_mode = isset($exam['attempt_mode']) ? (int)$exam['attempt_mode'] : (($exam['allow_multiple'] ?? 0) ? 1 : 0);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -52,6 +61,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="card shadow-sm">
             <div class="card-body">
                 <form method="POST">
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label class="form-label">Tên đề thi *</label>
                         <input type="text" name="title" class="form-control" value="<?= h($exam['title'] ?? '') ?>" required>
@@ -63,7 +73,8 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Thời gian làm bài (Phút) *</label>
-                            <input type="number" name="duration_minutes" class="form-control" min="1" value="<?= $exam['duration_minutes'] ?? 60 ?>" required>
+                            <input type="number" name="duration_minutes" class="form-control" min="0" value="<?= $exam['duration_minutes'] ?? 60 ?>" required>
+                            <div class="form-text">Nhập 0 nếu không giới hạn thời gian.</div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Thời gian Mở đề</label>
@@ -97,12 +108,18 @@ require_once __DIR__ . '/../includes/header.php';
                         <label class="form-check-label fw-bold text-primary" for="enable_prediction">Yêu cầu Dự đoán số người tham gia (Cuối đề thi)</label>
                     </div>
 
-                    <div class="form-check form-switch mb-4 p-3 bg-light rounded border border-success border-opacity-25">
-                        <input class="form-check-input ms-0 me-2" type="checkbox" id="allow_multiple" name="allow_multiple" <?= ($exam['allow_multiple'] ?? 0) ? 'checked' : '' ?>>
+                    <div class="d-none">
+                        <input type="hidden" name="allow_multiple" value="0">
                         <label class="form-check-label fw-bold text-success" for="allow_multiple">Cho phép thi nhiều lần (Thí sinh có thể thi lại sau khi đã nộp bài)</label>
                     </div>
                     
                     <button type="submit" class="btn btn-primary w-100">Lưu cấu hình & Chuyển tới chọn Câu hỏi</button>
+                    <div class="mb-4 p-3 bg-light rounded border border-success border-opacity-25">
+                        <div class="fw-bold text-success mb-2">Chế độ thi lại</div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="attempt_mode" value="0" <?= $attempt_mode === 0 ? 'checked' : '' ?>> <label class="form-check-label">Chỉ được thi một lần</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="attempt_mode" value="1" <?= $attempt_mode === 1 ? 'checked' : '' ?>> <label class="form-check-label">Cho phép thi nhiều lần (không giới hạn)</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="attempt_mode" value="2" <?= $attempt_mode === 2 ? 'checked' : '' ?>> <label class="form-check-label">Cho phép thi nhiều lần (tối đa 1 lần mỗi ngày)</label></div>
+                    </div>
                 </form>
             </div>
         </div>

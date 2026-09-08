@@ -15,14 +15,16 @@ if (!$exam) redirect('exams.php');
 // Handle Generative POST
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'generate') {
+    verify_csrf();
     $cat_id = !empty($_POST['category_id']) ? $_POST['category_id'] : null;
     $l1 = (int)$_POST['l1'];
     $l2 = (int)$_POST['l2'];
     $l3 = (int)$_POST['l3'];
     $l4 = (int)$_POST['l4'];
+    $l5 = (int)$_POST['l5'];
 
     $added = 0;
-    $levels = [1 => $l1, 2 => $l2, 3 => $l3, 4 => $l4];
+    $levels = [1 => $l1, 2 => $l2, 3 => $l3, 4 => $l4, 5 => $l5];
     
     foreach ($levels as $level => $limit) {
         if ($limit > 0) {
@@ -52,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'remove') {
+    verify_csrf();
     $qId = $_POST['question_id'];
     $pdo->prepare("DELETE FROM exam_questions WHERE exam_id=? AND question_id=?")->execute([$id, $qId]);
 }
@@ -85,6 +88,7 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
             <div class="card-body">
                 <form method="POST">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="generate">
                     <div class="mb-3">
                         <label class="form-label">Chọn Danh mục</label>
@@ -109,9 +113,13 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-8">Vận dụng</div>
                         <div class="col-4"><input type="number" name="l3" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
-                    <div class="row mb-3">
+                    <div class="row mb-2">
                         <div class="col-8">Vận dụng cao</div>
                         <div class="col-4"><input type="number" name="l4" class="form-control form-control-sm" min="0" value="0"></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-8">Thông thường</div>
+                        <div class="col-4"><input type="number" name="l5" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
                     <button type="submit" class="btn btn-success w-100 mt-2"><i class="bi bi-shuffle"></i> Tự động bốc câu hỏi</button>
                     <small class="text-muted d-block mt-2 text-center">Các câu hỏi đã có trong đề sẽ không bị lặp lại.</small>
@@ -143,6 +151,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <td>Mức <?= $q['level'] ?></td>
                             <td class="text-center">
                                 <form method="POST" style="display:inline;">
+                                    <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="remove">
                                     <input type="hidden" name="question_id" value="<?= $q['id'] ?>">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Loại khỏi đề"><i class="bi bi-x-lg"></i></button>

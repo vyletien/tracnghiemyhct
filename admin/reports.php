@@ -28,7 +28,7 @@ if (!$exam_id) {
     $stmtActual->execute([$exam_id]);
     $actual_participants_for_ranking = $stmtActual->fetchColumn();
 
-    // Fetch attempts with refined ranking
+    // Fetch attempts with refined ranking - LIMIT 200 for display
     $stmtAtt = $pdo->prepare("
         SELECT ea.*, u.fullname, u.username, u.phone, u.address
         FROM exam_attempts ea 
@@ -37,22 +37,23 @@ if (!$exam_id) {
         ORDER BY 
             ea.score DESC, 
             (ea.prediction_value IS NULL) ASC,
+            (CAST(COALESCE(ea.prediction_value, 0) AS SIGNED) >= ?) DESC,
             ABS(CAST(COALESCE(ea.prediction_value, 0) AS SIGNED) - ?) ASC, 
             ea.start_time ASC
+        LIMIT 200
     ");
-    $stmtAtt->execute([$exam_id, $actual_participants_for_ranking]);
+    $stmtAtt->execute([$exam_id, $actual_participants_for_ranking, $actual_participants_for_ranking]);
     $attempts = $stmtAtt->fetchAll();
     
-    // Stats for other cards
-    $total = count($attempts);
-    $max = 0; $min = 10; $sum = 0;
-    foreach ($attempts as $a) {
-        if ($a['score'] > $max) $max = $a['score'];
-        if ($a['score'] < $min) $min = $a['score'];
-        $sum += $a['score'];
-    }
-    $avg = $total > 0 ? round($sum / $total, 2) : 0;
-    if ($total == 0) $min = 0;
+    // Stats for other cards (Calculate from ALL attempts, not just the limited 200)
+    $stmtStats = $pdo->prepare("SELECT COUNT(*) as total, MAX(score) as max_score, MIN(score) as min_score, AVG(score) as avg_score FROM exam_attempts WHERE exam_id = ? AND is_submitted = 1");
+    $stmtStats->execute([$exam_id]);
+    $rowStats = $stmtStats->fetch();
+    
+    $total = $rowStats['total'] ?? 0;
+    $max = $rowStats['max_score'] ?? 0;
+    $min = $rowStats['min_score'] ?? 0;
+    $avg = isset($rowStats['avg_score']) ? round($rowStats['avg_score'], 2) : 0;
 }
 
 require_once __DIR__ . '/../includes/header.php';
@@ -86,7 +87,7 @@ require_once __DIR__ . '/../includes/header.php';
         <h2>Báo cáo: <?= h($exam['title']) ?></h2>
         <div>
             <a href="reports.php" class="btn btn-secondary me-2">Quay lại</a>
-            <a href="export_excel.php?exam_id=<?= $exam_id ?>" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+            <button onclick="exportExcel(<?= $exam_id ?>)" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</button>
         </div>
     </div>
     
@@ -124,7 +125,12 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
     
     <div class="card shadow-sm">
-        <div class="card-header bg-white fw-bold">Danh sách Điểm Thí sinh</div>
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Danh sách Điểm Thí sinh (Hiển thị tối đa 200 dòng)</span>
+            <?php if ($total > 200): ?>
+                <span class="badge bg-warning text-dark">Lưu ý: Chỉ hiển thị 200/<?= $total ?> kết quả. Vui lòng xuất Excel để xem đầy đủ.</span>
+            <?php endif; ?>
+        </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
@@ -164,5 +170,64 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 <?php endif; ?>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+async function exportExcel(examId) {
+    Swal.fire({
+        title: 'Đang xuất dữ liệu...',
+        text: 'Dữ liệu đang được biên dịch. Vui lòng không đóng trang này!',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    try {
+        const response = await fetch('export_excel.php?exam_id=' + examId, {
+            method: 'GET'
+        });
+
+        if (!response.ok) {
+            throw new Error('Lỗi tải file');
+        }
+
+        const blob = await response.blob();
+        
+        // Kiểm tra lỗi dưới dạng txt/html thay vì file XLS
+        if (blob.type.includes("text/html") && blob.size < 1000) {
+            const text = await blob.text();
+            Swal.fire('Lỗi', text, 'error');
+            return;
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        let filename = 'BaoCao_DiemThi.xls';
+        const disposition = response.headers.get('content-disposition');
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+            const matches = filenameRegex.exec(disposition);
+            if (matches != null && matches[1]) {
+                filename = matches[1].replace(/['"]/g, '');
+            }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        Swal.close();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire('Thất bại', 'Đã xảy ra sự cố khi xuất Excel. Vui lòng thử lại!', 'error');
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

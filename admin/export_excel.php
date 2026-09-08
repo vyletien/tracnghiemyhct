@@ -35,27 +35,35 @@ $stmtAtt = $pdo->prepare("
     ORDER BY 
         ea.score DESC, 
         (ea.prediction_value IS NULL) ASC,
+        (CAST(COALESCE(ea.prediction_value, 0) AS SIGNED) >= ?) DESC,
         ABS(CAST(COALESCE(ea.prediction_value, 0) AS SIGNED) - ?) ASC, 
         ea.start_time ASC
 ");
-$stmtAtt->execute([$exam_id, $actual_participants_for_ranking]);
+$stmtAtt->execute([$exam_id, $actual_participants_for_ranking, $actual_participants_for_ranking]);
 $attempts = $stmtAtt->fetchAll();
 
+// Setup headers explicitly for Excel download TRƯỚC TIÊN TƯ THẾ ĐỂ TRÁNH TRÀN BỘ NHỚ
+$filename = "BaoCao_DiemThi_" . date('Ymd_Hi') . ".xls";
+header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+header("Content-Disposition: attachment; filename=\"$filename\"");
+header('Cache-Control: max-age=0');
+
+
 // --- BƯỚC 1: XUẤT SHEET 1 (ĐIỂM THÍ SINH) ---
-$html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-$html .= '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>';
+echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+echo '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>';
 
 // Cấu hình Sheet 1
-$html .= '<x:ExcelWorksheet><x:Name>Diem Thi Sinh</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
+echo '<x:ExcelWorksheet><x:Name>Diem Thi Sinh</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
 // Cấu hình Sheet 2
-$html .= '<x:ExcelWorksheet><x:Name>Thong Ke Cau Hoi</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
+echo '<x:ExcelWorksheet><x:Name>Thong Ke Cau Hoi</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
 
-$html .= '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
+echo '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
 
 // --- SHEET 1 ---
-$html .= '<h2>BÁO CÁO ĐIỂM THI: ' . $exam['title'] . '</h2>';
-$html .= '<p>Số bài nộp: <b>' . count($attempts) . '</b> | Số người dự thi (theo SĐT): <b>' . $unique_participants . '</b></p>';
-$html .= '<table border="1">
+echo '<h2>BÁO CÁO ĐIỂM THI: ' . $exam['title'] . '</h2>';
+echo '<p>Số bài nộp: <b>' . count($attempts) . '</b> | Số người dự thi (theo SĐT): <b>' . $unique_participants . '</b></p>';
+echo '<table border="1">
     <thead>
         <tr style="background-color: #f2f2f2;">
             <th>STT</th>
@@ -76,7 +84,7 @@ foreach ($attempts as $a) {
     $t1 = strtotime($a['start_time']);
     $t2 = strtotime($a['end_time']);
     $seconds = ($t2 - $t1);
-    $html .= '<tr>
+    echo '<tr>
         <td>' . $stt++ . '</td>
         <td>' . htmlspecialchars($a['fullname']) . '</td>
         <td>' . htmlspecialchars($a['phone'] ?: 'N/A') . '</td>
@@ -89,9 +97,9 @@ foreach ($attempts as $a) {
     </tr>';
 }
 if (count($attempts) === 0) {
-    $html .= '<tr><td colspan="9">Chưa có dữ liệu</td></tr>';
+    echo '<tr><td colspan="9">Chưa có dữ liệu</td></tr>';
 }
-$html .= '</tbody></table><br><br><br>';
+echo '</tbody></table><br><br><br>';
 
 
 // --- BƯỚC 2: XUẤT SHEET 2 (THỐNG KÊ CÂU HỎI NHƯ YÊU CẦU) ---
@@ -101,8 +109,8 @@ $stmtQ = $pdo->prepare("SELECT q.* FROM questions q JOIN exam_questions eq ON q.
 $stmtQ->execute([$exam_id]);
 $questions = $stmtQ->fetchAll();
 
-$html .= '<h2>THỐNG KÊ ĐỘ KHÓ CỦA TỪNG CÂU HỎI</h2>';
-$html .= '<table border="1">
+echo '<h2>THỐNG KÊ ĐỘ KHÓ CỦA TỪNG CÂU HỎI</h2>';
+echo '<table border="1">
     <thead>
         <tr style="background-color: #d9edf7;">
             <th>ID Câu hỏi</th>
@@ -118,33 +126,67 @@ $html .= '<table border="1">
 
 // Attempt IDs for this exam
 $attempt_ids = array_column($attempts, 'id');
+$totalCount = count($attempt_ids);
+
+// TỐI ƯU CÂU TRUY VẤN 1: Lấy danh sách đáp án đúng của toàn bộ bài thi ra trước
+$stmtAns = $pdo->prepare("
+    SELECT a.question_id, a.id 
+    FROM answers a
+    JOIN exam_questions eq ON a.question_id = eq.question_id
+    WHERE eq.exam_id = ? AND a.is_correct = 1
+");
+$stmtAns->execute([$exam_id]);
+$correctKeys = [];
+foreach ($stmtAns->fetchAll() as $row) {
+    if (!isset($correctKeys[$row['question_id']])) {
+        $correctKeys[$row['question_id']] = [];
+    }
+    $correctKeys[$row['question_id']][] = $row['id'];
+}
+
+// TỐI ƯU CÂU TRUY VẤN 2: Lấy toàn bộ câu trả lời của tất cả thí sinh vào một mảng
+$stmtUserAns = $pdo->prepare("
+    SELECT aa.attempt_id, aa.question_id, aa.answer_id
+    FROM attempt_answers aa
+    JOIN exam_attempts ea ON aa.attempt_id = ea.id
+    WHERE ea.exam_id = ? AND ea.is_submitted = 1
+");
+$stmtUserAns->execute([$exam_id]);
+$userAnswersMap = [];
+foreach ($stmtUserAns->fetchAll() as $row) {
+    if (!isset($userAnswersMap[$row['question_id']])) {
+        $userAnswersMap[$row['question_id']] = [];
+    }
+    if (!isset($userAnswersMap[$row['question_id']][$row['attempt_id']])) {
+        $userAnswersMap[$row['question_id']][$row['attempt_id']] = [];
+    }
+    $userAnswersMap[$row['question_id']][$row['attempt_id']][] = $row['answer_id'];
+}
+
+$attempt_ids_map = array_flip($attempt_ids); // Để tra cứu O(1) xem có trong list nộp bài không
 
 foreach ($questions as $q) {
     $qId = $q['id'];
-    
-    // Correct answers
-    $ansStmt = $pdo->prepare("SELECT id FROM answers WHERE question_id = ? AND is_correct = 1");
-    $ansStmt->execute([$qId]);
-    $correctAnswers = $ansStmt->fetchAll(PDO::FETCH_COLUMN);
-    
     $correctCount = 0;
-    $totalCount = count($attempt_ids);
+    
+    $correctAnswers = isset($correctKeys[$qId]) ? $correctKeys[$qId] : [];
+    sort($correctAnswers);
     
     if ($totalCount > 0) {
-        foreach ($attempt_ids as $attId) {
-            $uAnsStmt = $pdo->prepare("SELECT answer_id FROM attempt_answers WHERE attempt_id = ? AND question_id = ?");
-            $uAnsStmt->execute([$attId, $qId]);
-            $uAnswers = $uAnsStmt->fetchAll(PDO::FETCH_COLUMN);
-            
-            if ($q['type'] === 'single') {
-                if (count($uAnswers) == 1 && in_array($uAnswers[0], $correctAnswers)) {
-                    $correctCount++;
-                }
-            } else {
-                sort($correctAnswers);
-                sort($uAnswers);
-                if (count($correctAnswers) > 0 && $correctAnswers === $uAnswers) {
-                    $correctCount++;
+        if (isset($userAnswersMap[$qId])) {
+            foreach ($userAnswersMap[$qId] as $attId => $uAnswers) {
+                // Kiểm tra xem attempt_id có hợp lệ trong bài thi đã submit (đã lọc ở MAP)
+                if (isset($attempt_ids_map[$attId])) {
+                    if ($q['type'] === 'single') {
+                        if (count($uAnswers) == 1 && in_array($uAnswers[0], $correctAnswers)) {
+                            $correctCount++;
+                        }
+                    } else {
+                        sort($uAnswers);
+                        if (count($correctAnswers) > 0 && $correctAnswers === $uAnswers) {
+                            $correctCount++;
+                        }
+                    }
                 }
             }
         }
@@ -152,7 +194,7 @@ foreach ($questions as $q) {
     
     $ratio = $totalCount > 0 ? round(($correctCount / $totalCount) * 100, 2) : 0;
     
-    $html .= '<tr>
+    echo '<tr>
         <td>' . $qId . '</td>
         <td>' . mb_strimwidth(strip_tags($q['content']), 0, 100, '...') . '</td>
         <td>' . ($q['type'] == 'single' ? 'Single' : 'Multiple') . '</td>
@@ -163,13 +205,6 @@ foreach ($questions as $q) {
     </tr>';
 }
 
-$html .= '</tbody></table></body></html>';
+echo '</tbody></table></body></html>';
 
-// Setup headers explicitly for Excel download
-$filename = "BaoCao_DiemThi_" . date('Ymd_Hi') . ".xls";
-header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-header("Content-Disposition: attachment; filename=\"$filename\"");
-header('Cache-Control: max-age=0');
-// Output contents
-echo $html;
 exit;

@@ -50,6 +50,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <option value="2" <?= $levelFilter === '2' ? 'selected' : '' ?>>Thông hiểu</option>
                     <option value="3" <?= $levelFilter === '3' ? 'selected' : '' ?>>Vận dụng</option>
                     <option value="4" <?= $levelFilter === '4' ? 'selected' : '' ?>>Vận dụng cao</option>
+                    <option value="5" <?= $levelFilter === '5' ? 'selected' : '' ?>>Thông thường</option>
                 </select>
             </div>
             <div class="col-md-4">
@@ -88,7 +89,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </td>
                 <td>
                     <?php 
-                        $levels = ['1' => 'Nhận biết', '2' => 'Thông hiểu', '3' => 'Vận dụng', '4' => 'Vận dụng cao'];
+                        $levels = ['1' => 'Nhận biết', '2' => 'Thông hiểu', '3' => 'Vận dụng', '4' => 'Vận dụng cao', '5' => 'Thông thường'];
                         echo $levels[$q['level']] ?? '';
                     ?>
                 </td>

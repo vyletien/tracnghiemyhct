@@ -3,6 +3,7 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
 
 checkLogin();
+verify_csrf();
 
 $attempt_id = $_POST['attempt_id'] ?? $_GET['attempt_id'] ?? null;
 if (!$attempt_id) redirect('/index.php');
@@ -19,6 +20,12 @@ if (!$attempt || $attempt['is_submitted']) {
 }
 
 $exam_id = $attempt['exam_id'];
+
+// Enforce the deadline on the server; client-side JavaScript can be modified.
+if ($attempt['end_time'] && strtotime($attempt['end_time']) <= time()) {
+    http_response_code(403);
+    exit('Đã hết thời gian làm bài.');
+}
 
 // Record User Answers
 $userAnswers = $_POST['answers'] ?? []; // format: [question_id] => answer_id OR array of answer_ids
@@ -93,5 +100,8 @@ try {
 
 } catch (\Exception $e) {
     $pdo->rollBack();
+    error_log('Exam submission failed: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Không thể nộp bài. Vui lòng thử lại sau.');
     die("Lỗi khi nộp bài: " . $e->getMessage());
 }

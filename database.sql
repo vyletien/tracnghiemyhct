@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS questions (
     category_id INT NULL,
     content TEXT NOT NULL,
     type ENUM('single', 'multiple') DEFAULT 'single',
-    level ENUM('1', '2', '3', '4') DEFAULT '1' COMMENT '1:Nhận biết, 2:Thông hiểu, 3:Vận dụng, 4:Vận dụng cao',
+    level ENUM('1', '2', '3', '4', '5') DEFAULT '1' COMMENT '1:Nhận biết, 2:Thông hiểu, 3:Vận dụng, 4:Vận dụng cao, 5:Thông thường',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 );
@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS exams (
     shuffle_questions BOOLEAN DEFAULT TRUE,
     shuffle_answers BOOLEAN DEFAULT TRUE,
     show_results BOOLEAN DEFAULT TRUE,
+    enable_prediction BOOLEAN DEFAULT FALSE,
+    allow_multiple BOOLEAN DEFAULT FALSE,
+    attempt_mode TINYINT NOT NULL DEFAULT 0 COMMENT '0: một lần, 1: nhiều lần, 2: tối đa một lần mỗi ngày',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -77,7 +80,6 @@ CREATE TABLE IF NOT EXISTS attempt_answers (
     FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE CASCADE
 );
 
--- Pass admin default: admin / 123456
+-- Pass admin default: admin / Hoiphunu@789
 INSERT INTO users (username, password, fullname, role) VALUES 
-('admin', '$2a$12$sQltt3yaQ87w7WNtvBc8S.qcnpWSNWu5yl7rIVYxwGUib/9LJZkgm', 'Administrator', 'admin'),
-('student1', '$2a$12$sQltt3yaQ87w7WNtvBc8S.qcnpWSNWu5yl7rIVYxwGUib/9LJZkgm', 'Sinh viên 1', 'student');
+('admin', '$2a$12$hT4IPEZUXW2n/KhETXoiAeo1W9CKYW7uQRN/ey0QIIXyvlH0kFXIi', 'Administrator', 'admin')

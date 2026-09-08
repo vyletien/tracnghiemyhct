@@ -28,13 +28,26 @@ if ($exam['end_time']) {
 }
 
 $user_id = $_SESSION['user_id'];
+$attempt_mode = isset($exam['attempt_mode']) ? (int)$exam['attempt_mode'] : (($exam['allow_multiple'] ?? 0) ? 1 : 0);
 
 // Check attempt
-if ($exam['allow_multiple']) {
+if ($attempt_mode === 1 || $attempt_mode === 2) {
     // If multiple attempts allowed, look for an active (unsubmitted) one
     $stmtAtt = $pdo->prepare("SELECT * FROM exam_attempts WHERE user_id = ? AND exam_id = ? AND is_submitted = 0 ORDER BY id DESC LIMIT 1");
     $stmtAtt->execute([$user_id, $exam_id]);
     $attempt = $stmtAtt->fetch();
+
+    // Daily mode: after finishing one attempt today, no new attempt is allowed.
+    if (!$attempt && $attempt_mode === 2) {
+        $today_start = date('Y-m-d 00:00:00');
+        $tomorrow_start = date('Y-m-d 00:00:00', strtotime('+1 day'));
+        $stmtDaily = $pdo->prepare("SELECT * FROM exam_attempts WHERE user_id = ? AND exam_id = ? AND is_submitted = 1 AND end_time >= ? AND end_time < ? ORDER BY id DESC LIMIT 1");
+        $stmtDaily->execute([$user_id, $exam_id, $today_start, $tomorrow_start]);
+        $daily_attempt = $stmtDaily->fetch();
+        if ($daily_attempt) {
+            redirect("/results.php?exam_id=$exam_id");
+        }
+    }
 } else {
     // If only one attempt allowed, look for ANY attempt
     $stmtAtt = $pdo->prepare("SELECT * FROM exam_attempts WHERE user_id = ? AND exam_id = ? ORDER BY id DESC LIMIT 1");
@@ -51,7 +64,12 @@ if (!$attempt) {
     // Create new attempt
     $start_time = date('Y-m-d H:i:s');
     // Default end time max
-    $max_end = date('Y-m-d H:i:s', strtotime("+$exam[duration_minutes] minutes"));
+    if ($exam['duration_minutes'] == 0) {
+        $max_end = '2099-12-31 23:59:59'; // Virtually unlimited
+    } else {
+        $max_end = date('Y-m-d H:i:s', strtotime("+$exam[duration_minutes] minutes"));
+    }
+    
     if ($exam['end_time'] && $exam['end_time'] < $max_end) {
         $max_end = $exam['end_time'];
     }
@@ -67,10 +85,12 @@ if (!$attempt) {
 }
 
 // Ensure end_time is not in the past
-$time_left_seconds = strtotime($attempt['end_time']) - time();
-if ($time_left_seconds <= 0) {
-    // Force submit if time is up
-    redirect("/submit_exam.php?auto=1&attempt_id={$attempt['id']}");
+if ($exam['duration_minutes'] > 0) {
+    $time_left_seconds = strtotime($attempt['end_time']) - time();
+    if ($time_left_seconds <= 0) {
+        // Force submit if time is up
+        redirect("/submit_exam.php?auto=1&attempt_id={$attempt['id']}");
+    }
 }
 
 // Load questions for this exam
@@ -108,6 +128,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="row">
     <div class="col-md-9">
         <form id="examForm" method="POST" action="submit_exam.php">
+            <?= csrf_field() ?>
             <input type="hidden" name="attempt_id" value="<?= $attempt['id'] ?>">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center sticky-top" style="top: 0; z-index: 1000;">
@@ -202,10 +223,16 @@ require_once __DIR__ . '/includes/header.php';
 
 <script>
     // Timer Countdown
+    const duration = <?= (int)$exam['duration_minutes'] ?>;
     const endTimeStr = "<?= date('c', strtotime($attempt['end_time'])) ?>";
     const endTime = new Date(endTimeStr).getTime();
 
     function updateTimer() {
+        if (duration === 0) {
+            document.getElementById("countdownTimer").innerHTML = "KHÔNG GIỚI HẠN";
+            return;
+        }
+
         const now = new Date().getTime();
         const distance = endTime - now;
 
@@ -226,7 +253,9 @@ require_once __DIR__ . '/includes/header.php';
     }
     
     // Update every second
-    setInterval(updateTimer, 1000);
+    if (duration > 0) {
+        setInterval(updateTimer, 1000);
+    }
     updateTimer();
 
     // Sidebar status sync
@@ -259,18 +288,12 @@ require_once __DIR__ . '/includes/header.php';
         }
 
         if (!hasPrediction) {
-            msg += "\n\nLƯU Ý: Bạn chưa nhập thông tin Dự đoán số người tham gia ở cuối đề!";
+            alert("Vui lòng nhập thông tin Dự đoán số người tham gia ở cuối đề trước khi nộp bài!");
+            if (predictionInput) predictionInput.focus();
+            return; // Stop submission
         }
-        
+
         if (confirm(msg)) {
-            // If prediction is required but empty, focus on it instead of submitting?
-            // User said "nhắc nhở" (remind), so maybe confirm is enough, but focusing is better UX.
-            if (!hasPrediction && predictionInput) {
-                predictionInput.focus();
-                // We let them submit anyway if they confirm? Or force it?
-                // The input has 'required', so HTML5 validation will trigger after confirm() returns true if we don't prevent it.
-                // But confirm handles the "are you sure".
-            }
             document.getElementById('examForm').submit();
         }
     });

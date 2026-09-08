@@ -1,19 +1,24 @@
 <?php
 // session_start() placed at the very beginning of the app
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'httponly' => true,
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'samesite' => 'Lax',
+        'path' => '/',
+    ]);
     session_start();
 }
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 
-// Lấy cấu hình từ biến môi trường (Ưu tiên $_ENV hoặc $_SERVER vì getenv() có thể bị disable)
-$host = $_ENV['MYSQLHOST'] ?? $_SERVER['MYSQLHOST'] ?? getenv('MYSQLHOST') ?: '127.0.0.1';
-$dbname = $_ENV['MYSQLDATABASE'] ?? $_SERVER['MYSQLDATABASE'] ?? getenv('MYSQLDATABASE') ?: 'tracnghiem';
-$user = $_ENV['MYSQLUSER'] ?? $_SERVER['MYSQLUSER'] ?? getenv('MYSQLUSER') ?: 'root';
-$pass = $_ENV['MYSQLPASSWORD'] ?? $_SERVER['MYSQLPASSWORD'] ?? getenv('MYSQLPASSWORD') ?: '';
-$port = $_ENV['MYSQLPORT'] ?? $_SERVER['MYSQLPORT'] ?? getenv('MYSQLPORT') ?: '3306';
+// --- CẤU HÌNH DATABASE CHO CPANEL / HOSTING ---
+$host = '127.0.0.1';
+$dbname = 'tracnghiem';
+$user = 'root';
+$pass = '';
 $charset = 'utf8mb4';
 
-$dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
+$dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -23,8 +28,10 @@ $options = [
 try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-     // Hiển thị lỗi kèm thông tin Host để debug (Xóa khi chạy thực tế nếu cần bảo mật)
-     die("Connection failed: " . $e->getMessage() . " (Target: $host:$port, Database: $dbname)");
+     error_log('Database connection failed: ' . $e->getMessage());
+     http_response_code(500);
+     exit('Database unavailable.');
+     die("Lỗi kết nối database: " . $e->getMessage());
 }
 
 // TinyMCE API Key (Lấy tại https://www.tiny.cloud/)

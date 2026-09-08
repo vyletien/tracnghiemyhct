@@ -36,7 +36,7 @@ require_once __DIR__ . '/../includes/header.php';
             <tr>
                 <td><?= $e['id'] ?></td>
                 <td><?= h($e['title']) ?></td>
-                <td><?= $e['duration_minutes'] ?></td>
+                <td><?= $e['duration_minutes'] == 0 ? 'Không giới hạn' : $e['duration_minutes'] ?></td>
                 <td>
                     Mở: <?= $e['start_time'] ? date('d/m/Y H:i', strtotime($e['start_time'])) : 'Không' ?><br>
                     Đóng: <?= $e['end_time'] ? date('d/m/Y H:i', strtotime($e['end_time'])) : 'Không' ?>
