@@ -279,6 +279,7 @@ require_once __DIR__ . '/includes/header.php';
     const attemptId = <?= (int)$attempt['id'] ?>;
     const csrfToken = <?= json_encode(csrf_token()) ?>;
     let wasHidden = false;
+    let lastHiddenAt = 0;
     let warningCount = <?= $savedWarningCount ?>;
     let isSubmitting = false;
     const examForm = document.getElementById('examForm');
@@ -309,15 +310,21 @@ require_once __DIR__ . '/includes/header.php';
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             wasHidden = true;
+            lastHiddenAt = Date.now();
             logExamEvent('tab_hidden', 'Rời tab hoặc chuyển sang cửa sổ khác');
         } else if (wasHidden) {
             wasHidden = false;
+            lastHiddenAt = 0;
             logExamEvent('tab_visible', 'Quay lại trang thi');
         }
     });
     examForm.addEventListener('submit', () => { isSubmitting = true; });
     window.addEventListener('pagehide', () => {
-        if (!isSubmitting) logExamEvent('page_unload', 'Rời khỏi hoặc đóng trang thi');
+        // Một số trình duyệt phát cả visibilitychange và pagehide khi rời trang;
+        // bỏ qua pagehide gần với tab_hidden để một lần rời đi chỉ tính một vi phạm.
+        if (!isSubmitting && Date.now() - lastHiddenAt > 2000) {
+            logExamEvent('page_unload', 'Rời khỏi hoặc đóng trang thi');
+        }
     });
     ['copy', 'cut', 'paste', 'contextmenu'].forEach(eventName => {
         document.addEventListener(eventName, event => {
