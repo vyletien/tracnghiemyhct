@@ -67,11 +67,7 @@ $contestName = getSiteSetting($pdo, 'contest_name', 'BỆNH VIỆN YHCT & PHCN Q
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto">
-        <?php if (isAdmin()): ?>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/index.php">Quản trị</a>
-        </li>
-        <?php elseif (isLoggedIn()): ?>
+        <?php if (isLoggedIn() && !isAdmin()): ?>
         <li class="nav-item">
           <a class="nav-link" href="/index.php">Danh sách đề thi</a>
         </li>
@@ -82,6 +78,11 @@ $contestName = getSiteSetting($pdo, 'contest_name', 'BỆNH VIỆN YHCT & PHCN Q
       </ul>
       <ul class="navbar-nav">
         <?php if (isLoggedIn()): ?>
+        <?php if (isAdmin()): ?>
+        <li class="nav-item">
+          <a class="nav-link" href="/admin/index.php">Quản trị</a>
+        </li>
+        <?php endif; ?>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
             <i class="bi bi-person-circle"></i> <?= h($_SESSION['fullname'] ?? '') ?>
