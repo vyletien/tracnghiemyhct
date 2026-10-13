@@ -59,10 +59,10 @@ require_once __DIR__ . '/../includes/header.php';
                 <select name="level" class="form-select">
                     <option value="">Tất cả mức độ</option>
                     <option value="1" <?= $levelFilter === '1' ? 'selected' : '' ?>>Nhận biết</option>
-                    <option value="2" <?= $levelFilter === '2' ? 'selected' : '' ?>>Thông hiểu</option>
-                    <option value="3" <?= $levelFilter === '3' ? 'selected' : '' ?>>Vận dụng</option>
-                    <option value="4" <?= $levelFilter === '4' ? 'selected' : '' ?>>Vận dụng cao</option>
-                    <option value="5" <?= $levelFilter === '5' ? 'selected' : '' ?>>Thông thường</option>
+                    <option value="2" <?= $levelFilter === '2' ? 'selected' : '' ?>>Thông thường</option>
+                    <option value="3" <?= $levelFilter === '3' ? 'selected' : '' ?>>Thông hiểu</option>
+                    <option value="4" <?= $levelFilter === '4' ? 'selected' : '' ?>>Vận dụng</option>
+                    <option value="5" <?= $levelFilter === '5' ? 'selected' : '' ?>>Vận dụng cao</option>
                 </select>
             </div>
             <div class="col-md-4">
@@ -102,7 +102,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </td>
                 <td>
                     <?php 
-                        $levels = ['1' => 'Nhận biết', '2' => 'Thông hiểu', '3' => 'Vận dụng', '4' => 'Vận dụng cao', '5' => 'Thông thường'];
+                        $levels = ['1' => 'Nhận biết', '2' => 'Thông thường', '3' => 'Thông hiểu', '4' => 'Vận dụng', '5' => 'Vận dụng cao'];
                         echo $levels[$q['level']] ?? '';
                     ?>
                 </td>

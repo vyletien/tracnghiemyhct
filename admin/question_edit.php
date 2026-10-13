@@ -117,10 +117,10 @@ require_once __DIR__ . '/../includes/header.php';
                         <label class="form-label">Mức độ</label>
                         <select name="level" class="form-select">
                             <option value="1" <?= ($qData['level'] ?? '') == '1' ? 'selected' : '' ?>>Nhận biết</option>
-                            <option value="2" <?= ($qData['level'] ?? '') == '2' ? 'selected' : '' ?>>Thông hiểu</option>
-                            <option value="3" <?= ($qData['level'] ?? '') == '3' ? 'selected' : '' ?>>Vận dụng</option>
-                            <option value="4" <?= ($qData['level'] ?? '') == '4' ? 'selected' : '' ?>>Vận dụng cao</option>
-                            <option value="5" <?= ($qData['level'] ?? '') == '5' ? 'selected' : '' ?>>Thông thường</option>
+                            <option value="2" <?= ($qData['level'] ?? '') == '2' ? 'selected' : '' ?>>Thông thường</option>
+                            <option value="3" <?= ($qData['level'] ?? '') == '3' ? 'selected' : '' ?>>Thông hiểu</option>
+                            <option value="4" <?= ($qData['level'] ?? '') == '4' ? 'selected' : '' ?>>Vận dụng</option>
+                            <option value="5" <?= ($qData['level'] ?? '') == '5' ? 'selected' : '' ?>>Vận dụng cao</option>
                         </select>
                     </div>
                     <div class="mb-3">

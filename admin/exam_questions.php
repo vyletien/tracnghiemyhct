@@ -106,19 +106,19 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-4"><input type="number" name="l1" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
                     <div class="row mb-2">
-                        <div class="col-8">Thông hiểu</div>
+                        <div class="col-8">Thông thường</div>
                         <div class="col-4"><input type="number" name="l2" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
                     <div class="row mb-2">
-                        <div class="col-8">Vận dụng</div>
+                        <div class="col-8">Thông hiểu</div>
                         <div class="col-4"><input type="number" name="l3" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
                     <div class="row mb-2">
-                        <div class="col-8">Vận dụng cao</div>
+                        <div class="col-8">Vận dụng</div>
                         <div class="col-4"><input type="number" name="l4" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-8">Thông thường</div>
+                        <div class="col-8">Vận dụng cao</div>
                         <div class="col-4"><input type="number" name="l5" class="form-control form-control-sm" min="0" value="0"></div>
                     </div>
                     <button type="submit" class="btn btn-success w-100 mt-2"><i class="bi bi-shuffle"></i> Tự động bốc câu hỏi</button>
@@ -148,7 +148,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <tr>
                             <td><?= $q['id'] ?></td>
                             <td><?= mb_strimwidth(strip_tags($q['content']), 0, 80, '...') ?></td>
-                            <td>Mức <?= $q['level'] ?></td>
+                            <?php $levelNames = [1 => 'Nhận biết', 2 => 'Thông thường', 3 => 'Thông hiểu', 4 => 'Vận dụng', 5 => 'Vận dụng cao']; ?>
+                            <td><?= h($levelNames[(int)$q['level']] ?? ('Mức ' . $q['level'])) ?></td>
                             <td class="text-center">
                                 <form method="POST" style="display:inline;">
                                     <?= csrf_field() ?>

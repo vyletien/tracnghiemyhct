@@ -62,7 +62,7 @@ CREATE TABLE questions (
     category_id INT UNSIGNED NULL,
     content TEXT NOT NULL,
     type ENUM('single', 'multiple') NOT NULL DEFAULT 'single',
-    level ENUM('1', '2', '3', '4', '5') NOT NULL DEFAULT '1' COMMENT '1: Nhận biết, 2: Thông hiểu, 3: Vận dụng, 4: Vận dụng cao, 5: Thông thường',
+    level ENUM('1', '2', '3', '4', '5') NOT NULL DEFAULT '1' COMMENT '1: Nhận biết, 2: Thông thường, 3: Thông hiểu, 4: Vận dụng, 5: Vận dụng cao',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_questions_category_id (category_id),
