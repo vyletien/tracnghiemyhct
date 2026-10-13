@@ -8,7 +8,7 @@ CREATE TABLE site_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO site_settings (setting_key, setting_value)
-VALUES ('contest_name', 'Bệnh viện Y học cổ truyền và Phục hồi chức năng Quy Nhơn');
+VALUES ('contest_name', 'BỆNH VIỆN YHCT & PHCN QUY NHƠN');
 
 CREATE TABLE units (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

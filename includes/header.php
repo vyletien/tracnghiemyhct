@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/functions.php';
-$contestName = getSiteSetting($pdo, 'contest_name', 'Bệnh viện Y học cổ truyền và Phục hồi chức năng Quy Nhơn');
+$contestName = getSiteSetting($pdo, 'contest_name', 'BỆNH VIỆN YHCT & PHCN QUY NHƠN');
 ?>
 <!DOCTYPE html>
 <html lang="vi">

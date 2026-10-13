@@ -4,7 +4,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 checkAdmin();
 
-$defaultContestName = 'Bệnh viện Y học cổ truyền và Phục hồi chức năng Quy Nhơn';
+$defaultContestName = 'BỆNH VIỆN YHCT & PHCN QUY NHƠN';
 $contestName = $defaultContestName;
 $error = '';
 $success = '';
