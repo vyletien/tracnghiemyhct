@@ -84,6 +84,10 @@ if (!$attempt) {
     $attempt = $stmtLatest->fetch();
 }
 
+// Ghi nhận mỗi lần mở hoặc tiếp tục trang thi để admin nhận biết thí sinh đã vào lại.
+$pdo->prepare("INSERT INTO exam_cheat_events (attempt_id, event_type, event_detail) VALUES (?, 'page_open', ?)")
+    ->execute([$attempt['id'], 'Mở hoặc tiếp tục trang thi']);
+
 // Ensure end_time is not in the past
 if ($exam['duration_minutes'] > 0) {
     $time_left_seconds = strtotime($attempt['end_time']) - time();
@@ -175,6 +179,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
                 <div class="card-body">
+                    <div id="cheatWarning" class="alert alert-warning d-none" role="alert"></div>
                     <?php /* Ẩn mô tả theo yêu cầu người dùng
                     if ($exam['description']): ?>
                         <div class="alert alert-info"><?= nl2br(h($exam['description'])) ?></div>
@@ -263,6 +268,67 @@ require_once __DIR__ . '/includes/header.php';
     const duration = <?= (int)$exam['duration_minutes'] ?>;
     const endTimeStr = "<?= date('c', strtotime($attempt['end_time'])) ?>";
     const endTime = new Date(endTimeStr).getTime();
+    const attemptId = <?= (int)$attempt['id'] ?>;
+    const csrfToken = <?= json_encode(csrf_token()) ?>;
+    let wasHidden = false;
+    let warningCount = 0;
+    let isSubmitting = false;
+    const examForm = document.getElementById('examForm');
+
+    function logExamEvent(eventType, detail = '') {
+        const suspiciousEvents = ['tab_hidden', 'tab_visible', 'page_unload', 'copy', 'cut', 'paste', 'context_menu', 'devtools_shortcut'];
+        if (suspiciousEvents.includes(eventType)) {
+            warningCount++;
+            const warning = document.getElementById('cheatWarning');
+            if (warning) {
+                warning.textContent = `Cảnh báo: hệ thống đã ghi nhận ${warningCount} hành vi rời bài thi hoặc thao tác không được phép.`;
+                warning.classList.remove('d-none');
+            }
+        }
+        const body = JSON.stringify({attempt_id: attemptId, event_type: eventType, event_detail: detail, csrf_token: csrfToken});
+        if (navigator.sendBeacon && eventType === 'page_unload') {
+            navigator.sendBeacon('log_cheat_event.php', new Blob([body], {type: 'application/json'}));
+            return;
+        }
+        fetch('log_cheat_event.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
+            body,
+            keepalive: true
+        }).catch(() => {});
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            wasHidden = true;
+            logExamEvent('tab_hidden', 'Rời tab hoặc chuyển sang cửa sổ khác');
+        } else if (wasHidden) {
+            wasHidden = false;
+            logExamEvent('tab_visible', 'Quay lại trang thi');
+        }
+    });
+    examForm.addEventListener('submit', () => { isSubmitting = true; });
+    window.addEventListener('pagehide', () => {
+        if (!isSubmitting) logExamEvent('page_unload', 'Rời khỏi hoặc đóng trang thi');
+    });
+    ['copy', 'cut', 'paste', 'contextmenu'].forEach(eventName => {
+        document.addEventListener(eventName, event => {
+            if (eventName !== 'copy' || event.target.closest('.question-content, .answers-list')) {
+                event.preventDefault();
+            }
+            logExamEvent(eventName === 'contextmenu' ? 'context_menu' : eventName, 'Thao tác trên nội dung bài thi');
+        });
+    });
+    document.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && ['c', 'x', 'v', 'u', 's'].includes(event.key.toLowerCase())) {
+            event.preventDefault();
+            logExamEvent(event.key.toLowerCase() === 'c' ? 'copy' : event.key.toLowerCase() === 'x' ? 'cut' : event.key.toLowerCase() === 'v' ? 'paste' : 'devtools_shortcut', 'Phím tắt trình duyệt bị chặn');
+        }
+        if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && ['i', 'j', 'c'].includes(event.key.toLowerCase()))) {
+            event.preventDefault();
+            logExamEvent('devtools_shortcut', 'Phím tắt công cụ nhà phát triển');
+        }
+    });
 
     function updateTimer() {
         if (duration === 0) {

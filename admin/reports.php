@@ -31,10 +31,19 @@ if (!$exam_id) {
     // A participant may submit multiple times, but only one result is recognized.
     // Ranking: highest score, shortest duration, then closest prediction.
     $stmtAtt = $pdo->prepare("
-        SELECT ea.*, u.fullname, u.username, u.phone, un.name AS unit_name
+        SELECT ea.*, u.fullname, u.username, u.phone, un.name AS unit_name,
+               COALESCE(ce.cheat_count, 0) AS cheat_count,
+               COALESCE(ce.reentry_count, 0) AS reentry_count
         FROM exam_attempts ea 
         JOIN users u ON ea.user_id = u.id
         LEFT JOIN units un ON u.unit_id = un.id
+        LEFT JOIN (
+            SELECT attempt_id,
+                   SUM(CASE WHEN event_type <> 'page_open' THEN 1 ELSE 0 END) AS cheat_count,
+                   GREATEST(SUM(CASE WHEN event_type = 'page_open' THEN 1 ELSE 0 END) - 1, 0) AS reentry_count
+            FROM exam_cheat_events
+            GROUP BY attempt_id
+        ) ce ON ce.attempt_id = ea.id
         WHERE ea.exam_id = ? AND ea.is_submitted = 1
         ORDER BY ea.user_id ASC, ea.score DESC, ea.start_time ASC
     ");
@@ -172,6 +181,8 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>SĐT</th>
                         <th>Đơn vị</th>
                         <th>Câu dự đoán</th>
+                        <th>Vào lại</th>
+                        <th>Cảnh báo</th>
                         <th>Thời gian Bắt đầu</th>
                         <th>Giây làm bài</th>
                         <th class="text-center text-danger">Điểm số</th>
@@ -189,13 +200,15 @@ require_once __DIR__ . '/../includes/header.php';
                         <td><?= h($a['phone'] ?: 'N/A') ?></td>
                         <td><?= h($a['unit_name'] ?: 'Chưa xác định') ?></td>
                         <td><?= h($a['prediction_value'] ?? '-') ?></td>
+                        <td class="text-center"><?= (int)$a['reentry_count'] ?></td>
+                        <td class="text-center <?= (int)$a['cheat_count'] > 0 ? 'text-danger fw-bold' : 'text-success' ?>"><?= (int)$a['cheat_count'] ?></td>
                         <td><?= date('d/m/Y H:i:s', $t1) ?></td>
                         <td><?= $secs ?> giây</td>
                         <td class="text-center fw-bold fs-5 text-danger"><?= number_format($a['score'] ?? 0, 2) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if(count($attempts) === 0): ?>
-                    <tr><td colspan="8" class="text-center p-3">Chưa có bài làm nào nộp trên hệ thống.</td></tr>
+                    <tr><td colspan="10" class="text-center p-3">Chưa có bài làm nào nộp trên hệ thống.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

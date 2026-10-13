@@ -28,10 +28,19 @@ $actual_participants_for_ranking = $stmtActual->fetchColumn();
 
 // Fetch attempts with refined ranking
 $stmtAtt = $pdo->prepare("
-    SELECT ea.*, u.fullname, u.username, u.phone, un.name AS unit_name
+    SELECT ea.*, u.fullname, u.username, u.phone, un.name AS unit_name,
+           COALESCE(ce.cheat_count, 0) AS cheat_count,
+           COALESCE(ce.reentry_count, 0) AS reentry_count
     FROM exam_attempts ea 
     JOIN users u ON ea.user_id = u.id
     LEFT JOIN units un ON u.unit_id = un.id
+    LEFT JOIN (
+        SELECT attempt_id,
+               SUM(CASE WHEN event_type <> 'page_open' THEN 1 ELSE 0 END) AS cheat_count,
+               GREATEST(SUM(CASE WHEN event_type = 'page_open' THEN 1 ELSE 0 END) - 1, 0) AS reentry_count
+        FROM exam_cheat_events
+        GROUP BY attempt_id
+    ) ce ON ce.attempt_id = ea.id
     WHERE ea.exam_id = ? AND ea.is_submitted = 1
     ORDER BY 
         ea.score DESC, 
@@ -72,6 +81,8 @@ echo '<table border="1">
             <th>Số Điện Thoại</th>
             <th>Đơn vị</th>
             <th>Câu dự đoán</th>
+            <th>Số lần vào lại</th>
+            <th>Số cảnh báo gian lận</th>
             <th>Thời gian bắt đầu</th>
             <th>Thời gian nộp bài</th>
             <th>Thời gian làm bài (Giây)</th>
@@ -91,6 +102,8 @@ foreach ($attempts as $a) {
         <td>' . htmlspecialchars($a['phone'] ?: 'N/A') . '</td>
         <td>' . htmlspecialchars($a['unit_name'] ?: 'Chưa xác định') . '</td>
         <td>' . ($a['prediction_value'] ?? '-') . '</td>
+        <td>' . (int)$a['reentry_count'] . '</td>
+        <td>' . (int)$a['cheat_count'] . '</td>
         <td>' . date('d/m/Y H:i:s', $t1) . '</td>
         <td>' . date('d/m/Y H:i:s', $t2) . '</td>
         <td>' . $seconds . '</td>
@@ -98,7 +111,7 @@ foreach ($attempts as $a) {
     </tr>';
 }
 if (count($attempts) === 0) {
-    echo '<tr><td colspan="9">Chưa có dữ liệu</td></tr>';
+    echo '<tr><td colspan="11">Chưa có dữ liệu</td></tr>';
 }
 echo '</tbody></table><br><br><br>';
 
