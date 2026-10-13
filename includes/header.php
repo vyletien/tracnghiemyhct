@@ -2,6 +2,13 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/functions.php';
 $contestName = getSiteSetting($pdo, 'contest_name', 'BỆNH VIỆN YHCT & PHCN QUY NHƠN');
+$defaultOgImage = '/assets/og-default.png';
+$configuredOgImage = getSiteSetting($pdo, 'og_image', $defaultOgImage);
+$baseUrl = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+$ogImage = preg_match('/^https?:\\/\\//i', $configuredOgImage)
+    ? $configuredOgImage
+    : $baseUrl . '/' . ltrim($configuredOgImage, '/');
+$pageUrl = $baseUrl . ($_SERVER['REQUEST_URI'] ?? '/');
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -13,11 +20,16 @@ $contestName = getSiteSetting($pdo, 'contest_name', 'BỆNH VIỆN YHCT & PHCN Q
     <meta property="og:type" content="website">
     <meta property="og:title" content="<?= h($contestName) ?>">
     <meta property="og:description" content="Tham gia <?= h($contestName) ?> trực tuyến.">
-    <meta property="og:url" content="/login.php">
-    <meta property="og:image" content="/assets/og-zalo.png">
-    <meta property="og:image:width" content="1742">
-    <meta property="og:image:height" content="900">
+    <meta property="og:url" content="<?= h($pageUrl) ?>">
+    <meta property="og:image" content="<?= h($ogImage) ?>">
+    <meta property="og:image:secure_url" content="<?= h($ogImage) ?>">
+    <meta property="og:image:width" content="1536">
+    <meta property="og:image:height" content="1024">
     <meta property="og:image:type" content="image/png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= h($contestName) ?>">
+    <meta name="twitter:description" content="Tham gia <?= h($contestName) ?> trực tuyến.">
+    <meta name="twitter:image" content="<?= h($ogImage) ?>">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
