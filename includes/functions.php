@@ -5,6 +5,17 @@ function h($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+function normalizePhone($phone) {
+    if (!is_string($phone) && !is_numeric($phone)) {
+        return '';
+    }
+    return preg_replace('/[\s.\-()]+/', '', trim((string)$phone));
+}
+
+function isValidPhone($phone) {
+    return preg_match('/^(?:\+84|0)\d{8,10}$/', $phone) === 1;
+}
+
 function getSiteSetting($pdo, $key, $default = '') {
     static $settings = [];
 

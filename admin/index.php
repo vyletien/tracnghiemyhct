@@ -59,6 +59,15 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
     </div>
+    <div class="col-md-6 col-xl-3 mb-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h5 class="card-title text-dark"><i class="bi bi-people"></i> Quản lý thí sinh</h5>
+                <p class="card-text text-dark">Tra cứu và chỉnh sửa họ tên, số điện thoại, đơn vị của thí sinh.</p>
+                <a href="/admin/participants.php" class="btn btn-light text-dark">Quản lý ngay</a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

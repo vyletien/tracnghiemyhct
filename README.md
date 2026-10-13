@@ -6,7 +6,9 @@
 
 - Quản lý đề thi, câu hỏi và danh mục.
 - Thí sinh vào thi bằng họ tên, số điện thoại và đơn vị.
+- Hệ thống ghi nhớ hồ sơ theo số điện thoại; thí sinh quay lại chỉ cần nhập số điện thoại để tự điền thông tin.
 - Quản trị viên có thể thêm, sửa, xóa danh sách đơn vị.
+- Quản trị viên có thể tra cứu và sửa hồ sơ thí sinh khi thông tin chưa chính xác.
 - Danh sách đơn vị mặc định gồm các Khoa, Phòng của bệnh viện.
 - Quản trị viên có thể cấu hình tên cuộc thi hiển thị trên toàn hệ thống.
 - Thi trực tuyến với thời gian đếm ngược.

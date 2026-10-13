@@ -17,47 +17,48 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     if (isset($_POST['login_type']) && $_POST['login_type'] === 'guest') {
-        $fullname = trim($_POST['fullname'] ?? '');
-        $phone = preg_replace('/[\s.\-()]+/', '', trim($_POST['phone'] ?? ''));
+        $fullname = is_string($_POST['fullname'] ?? null) ? trim($_POST['fullname']) : '';
+        $phone = normalizePhone($_POST['phone'] ?? '');
         $unit_id = filter_input(INPUT_POST, 'unit_id', FILTER_VALIDATE_INT);
 
-        $unitStmt = $pdo->prepare("SELECT id FROM units WHERE id = ?");
-        $unitStmt->execute([$unit_id ?: 0]);
-        $validUnitId = $unitStmt->fetchColumn();
-
-        if ($fullname === '' || $phone === '' || !$unit_id) {
-            $error = 'Vui lòng nhập đầy đủ họ tên, số điện thoại và chọn đơn vị!';
-        } elseif (mb_strlen($fullname) > 100) {
-            $error = 'Họ tên không được dài quá 100 ký tự!';
-        } elseif (!preg_match('/^(?:\+84|0)\d{8,10}$/', $phone)) {
+        if (!isValidPhone($phone)) {
             $error = 'Số điện thoại không đúng định dạng!';
-        } elseif (!$validUnitId) {
-            $error = 'Đơn vị đã chọn không tồn tại. Vui lòng chọn lại!';
         } else {
             $stmt = $pdo->prepare("SELECT * FROM users WHERE phone = ? AND role = 'student' ORDER BY id ASC LIMIT 1");
             $stmt->execute([$phone]);
             $user = $stmt->fetch();
 
-            if (!$user) {
+            if ($user && !$user['unit_id']) {
+                $error = 'Thông tin đơn vị chưa đầy đủ. Vui lòng liên hệ Admin để cập nhật.';
+            } elseif (!$user) {
+                $unitStmt = $pdo->prepare("SELECT id FROM units WHERE id = ?");
+                $unitStmt->execute([$unit_id ?: 0]);
+                $validUnitId = $unitStmt->fetchColumn();
+
+                if ($fullname === '' || !$unit_id) {
+                    $error = 'Số điện thoại mới. Vui lòng nhập họ tên và chọn đơn vị!';
+                } elseif (mb_strlen($fullname) > 100) {
+                    $error = 'Họ tên không được dài quá 100 ký tự!';
+                } elseif (!$validUnitId) {
+                    $error = 'Đơn vị đã chọn không tồn tại. Vui lòng chọn lại!';
+                } else {
                 $username = 'guest_' . sha1($phone);
                 $stmtIns = $pdo->prepare("INSERT INTO users (username, password, fullname, phone, unit_id, role) VALUES (?, NULL, ?, ?, ?, 'student')");
                 $stmtIns->execute([$username, $fullname, $phone, $unit_id]);
                 $stmt->execute([$phone]);
                 $user = $stmt->fetch();
-            } else {
-                $stmtUpd = $pdo->prepare("UPDATE users SET fullname = ?, unit_id = ? WHERE id = ?");
-                $stmtUpd->execute([$fullname, $unit_id, $user['id']]);
-                $user['fullname'] = $fullname;
-                $user['unit_id'] = $unit_id;
+                }
             }
 
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['fullname'] = $user['fullname'];
-            $_SESSION['role'] = $user['role'];
-            
-            redirect('/index.php');
+            if ($error === '' && $user) {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['fullname'] = $user['fullname'];
+                $_SESSION['role'] = $user['role'];
+
+                redirect('/index.php');
+            }
         }
     } else {
         // Standard login
@@ -116,16 +117,17 @@ require_once __DIR__ . '/includes/header.php';
                         <?= csrf_field() ?>
                         <input type="hidden" name="login_type" value="guest">
                         <div class="mb-3">
-                            <label class="form-label fw-bold small">Họ và tên <span class="text-danger">*</span></label>
-                            <input type="text" name="fullname" class="form-control form-control-lg bg-light border-0" maxlength="100" value="<?= h($_POST['fullname'] ?? '') ?>" placeholder="VD: Nguyễn Thị B" autocomplete="name" required>
+                            <label class="form-label fw-bold small">Số điện thoại <span class="text-danger">*</span></label>
+                            <input id="participantPhone" type="tel" name="phone" class="form-control form-control-lg bg-light border-0" maxlength="20" value="<?= h($_POST['phone'] ?? '') ?>" placeholder="VD: 0912..." autocomplete="tel" inputmode="tel" required>
+                            <div id="phoneLookupStatus" class="form-text">Nếu đã tham gia trước đây, chỉ cần nhập số điện thoại.</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold small">Số điện thoại <span class="text-danger">*</span></label>
-                            <input type="tel" name="phone" class="form-control form-control-lg bg-light border-0" maxlength="20" value="<?= h($_POST['phone'] ?? '') ?>" placeholder="VD: 0912..." autocomplete="tel" inputmode="tel" required>
+                            <label class="form-label fw-bold small">Họ và tên <span class="text-danger">*</span></label>
+                            <input id="participantFullname" type="text" name="fullname" class="form-control form-control-lg bg-light border-0" maxlength="100" value="<?= h($_POST['fullname'] ?? '') ?>" placeholder="VD: Nguyễn Thị B" autocomplete="name">
                         </div>
                         <div class="mb-4">
                             <label class="form-label fw-bold small">Đơn vị <span class="text-danger">*</span></label>
-                            <select name="unit_id" class="form-select form-select-lg bg-light border-0" required>
+                            <select id="participantUnit" name="unit_id" class="form-select form-select-lg bg-light border-0">
                                 <option value="">-- Chọn đơn vị --</option>
                                 <?php foreach ($units as $unit): ?>
                                     <option value="<?= (int)$unit['id'] ?>" <?= (string)($_POST['unit_id'] ?? '') === (string)$unit['id'] ? 'selected' : '' ?>><?= h($unit['name']) ?></option>
@@ -176,4 +178,89 @@ require_once __DIR__ . '/includes/header.php';
         border-bottom: 3px solid #0d6efd; 
     }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('#guest-form form');
+    const phoneInput = document.getElementById('participantPhone');
+    const fullnameInput = document.getElementById('participantFullname');
+    const unitSelect = document.getElementById('participantUnit');
+    const status = document.getElementById('phoneLookupStatus');
+    const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+    let lookupTimer;
+    let populatedFromLookup = false;
+
+    function normalizePhone(value) {
+        return value.trim().replace(/[\s.\-()]+/g, '');
+    }
+
+    function unlockProfile(clearValues) {
+        fullnameInput.readOnly = false;
+        unitSelect.disabled = false;
+        fullnameInput.required = true;
+        unitSelect.required = true;
+        if (clearValues) {
+            fullnameInput.value = '';
+            unitSelect.value = '';
+        }
+        populatedFromLookup = false;
+    }
+
+    phoneInput.addEventListener('input', function () {
+        clearTimeout(lookupTimer);
+        if (populatedFromLookup) {
+            unlockProfile(true);
+        }
+
+        const phone = normalizePhone(phoneInput.value);
+        if (!/^(?:\+84|0)\d{8,10}$/.test(phone)) {
+            status.className = 'form-text';
+            status.textContent = 'Nếu đã tham gia trước đây, chỉ cần nhập số điện thoại.';
+            return;
+        }
+
+        status.className = 'form-text text-primary';
+        status.textContent = 'Đang kiểm tra thông tin...';
+        lookupTimer = setTimeout(async function () {
+            const data = new FormData();
+            data.append('csrf_token', csrfToken);
+            data.append('phone', phone);
+
+            try {
+                const response = await fetch('/lookup_participant.php', { method: 'POST', body: data });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Không thể kiểm tra thông tin.');
+                }
+                if (normalizePhone(phoneInput.value) !== phone) {
+                    return;
+                }
+
+                if (result.found) {
+                    fullnameInput.value = result.fullname || '';
+                    unitSelect.value = result.unit_id || '';
+                    fullnameInput.readOnly = true;
+                    unitSelect.disabled = true;
+                    fullnameInput.required = false;
+                    unitSelect.required = false;
+                    populatedFromLookup = true;
+                    status.className = 'form-text text-success';
+                    status.textContent = 'Đã tìm thấy thông tin. Nếu thông tin chưa đúng, vui lòng liên hệ Admin để cập nhật.';
+                } else {
+                    unlockProfile(false);
+                    status.className = 'form-text text-primary';
+                    status.textContent = 'Số điện thoại mới. Vui lòng nhập họ tên và chọn đơn vị.';
+                }
+            } catch (error) {
+                unlockProfile(false);
+                status.className = 'form-text text-danger';
+                status.textContent = error.message;
+            }
+        }, 400);
+    });
+
+    if (phoneInput.value.trim() !== '') {
+        phoneInput.dispatchEvent(new Event('input'));
+    }
+});
+</script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

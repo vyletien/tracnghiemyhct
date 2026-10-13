@@ -81,6 +81,9 @@ $contestName = getSiteSetting($pdo, 'contest_name', 'Bệnh viện Y học cổ 
           <a class="nav-link" href="/admin/units.php">Quản lý đơn vị</a>
         </li>
         <li class="nav-item">
+          <a class="nav-link" href="/admin/participants.php">Thí sinh</a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link" href="/admin/reports.php">Báo cáo</a>
         </li>
         <li class="nav-item">
