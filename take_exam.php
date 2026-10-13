@@ -140,6 +140,10 @@ require_once __DIR__ . '/includes/header.php';
         transition: padding .2s ease, box-shadow .2s ease;
     }
 
+    .mobile-cheat-warning {
+        display: none;
+    }
+
     @media (max-width: 767.98px) {
         .exam-sticky-header {
             gap: .5rem;
@@ -169,6 +173,18 @@ require_once __DIR__ . '/includes/header.php';
             font-size: 1.1rem !important;
             padding: .4rem .65rem !important;
         }
+
+        .mobile-cheat-warning {
+            display: block;
+            flex: 0 1 auto;
+            min-width: 0;
+            max-width: 48%;
+            margin: 0 .4rem 0 0;
+            padding: .35rem .45rem;
+            font-size: .68rem;
+            line-height: 1.15;
+            text-align: center;
+        }
     }
 </style>
 
@@ -180,6 +196,9 @@ require_once __DIR__ . '/includes/header.php';
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center sticky-top exam-sticky-header" style="top: 0; z-index: 1000;">
                     <h4 class="mb-0 text-primary exam-title"><?= h($exam['title']) ?></h4>
+                    <div id="cheatWarningMobile" class="alert alert-warning mobile-cheat-warning <?= $savedWarningCount > 0 ? '' : 'd-none' ?>" role="alert">
+                        <?= $savedWarningCount > 0 ? 'Đã ghi nhận ' . $savedWarningCount . ' cảnh báo' : '' ?>
+                    </div>
                     <div class="fw-bold fs-5 text-danger border p-2 rounded bg-light" id="countdownTimer">
                         00:00:00
                     </div>
@@ -289,9 +308,14 @@ require_once __DIR__ . '/includes/header.php';
         if (suspiciousEvents.includes(eventType)) {
             warningCount++;
             const warning = document.getElementById('cheatWarning');
+            const mobileWarning = document.getElementById('cheatWarningMobile');
             if (warning) {
                 warning.textContent = `Cảnh báo: hệ thống đã ghi nhận ${warningCount} hành vi rời bài thi hoặc thao tác không được phép.`;
                 warning.classList.remove('d-none');
+            }
+            if (mobileWarning) {
+                mobileWarning.textContent = `Đã ghi nhận ${warningCount} cảnh báo`;
+                mobileWarning.classList.remove('d-none');
             }
         }
         const body = JSON.stringify({attempt_id: attemptId, event_type: eventType, event_detail: detail, csrf_token: csrfToken});
