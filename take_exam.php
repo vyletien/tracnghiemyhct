@@ -179,7 +179,6 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
                 <div class="card-body">
-                    <div id="cheatWarning" class="alert alert-warning d-none" role="alert"></div>
                     <?php /* Ẩn mô tả theo yêu cầu người dùng
                     if ($exam['description']): ?>
                         <div class="alert alert-info"><?= nl2br(h($exam['description'])) ?></div>
@@ -259,6 +258,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
             </div>
+            <div id="cheatWarning" class="alert alert-warning d-none" role="alert"></div>
         </div>
     </div>
 </div>
@@ -276,7 +276,7 @@ require_once __DIR__ . '/includes/header.php';
     const examForm = document.getElementById('examForm');
 
     function logExamEvent(eventType, detail = '') {
-        const suspiciousEvents = ['tab_hidden', 'tab_visible', 'page_unload', 'copy', 'cut', 'paste', 'context_menu', 'devtools_shortcut'];
+        const suspiciousEvents = ['tab_hidden', 'page_unload', 'copy', 'cut', 'paste', 'context_menu', 'devtools_shortcut'];
         if (suspiciousEvents.includes(eventType)) {
             warningCount++;
             const warning = document.getElementById('cheatWarning');

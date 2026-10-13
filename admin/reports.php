@@ -39,7 +39,7 @@ if (!$exam_id) {
         LEFT JOIN units un ON u.unit_id = un.id
         LEFT JOIN (
             SELECT attempt_id,
-                   SUM(CASE WHEN event_type <> 'page_open' THEN 1 ELSE 0 END) AS cheat_count,
+                   SUM(CASE WHEN event_type IN ('tab_hidden', 'page_unload', 'copy', 'cut', 'paste', 'context_menu', 'devtools_shortcut') THEN 1 ELSE 0 END) AS cheat_count,
                    GREATEST(SUM(CASE WHEN event_type = 'page_open' THEN 1 ELSE 0 END) - 1, 0) AS reentry_count
             FROM exam_cheat_events
             GROUP BY attempt_id
