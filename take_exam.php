@@ -28,7 +28,7 @@ if ($exam['end_time']) {
 }
 
 $user_id = $_SESSION['user_id'];
-$attempt_mode = isset($exam['attempt_mode']) ? (int)$exam['attempt_mode'] : (($exam['allow_multiple'] ?? 0) ? 1 : 0);
+$attempt_mode = (int)$exam['attempt_mode'];
 
 // Check attempt
 if ($attempt_mode === 1 || $attempt_mode === 2) {

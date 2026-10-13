@@ -30,23 +30,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($attempt_mode, [0, 1, 2], true)) {
         $attempt_mode = 0;
     }
-    // Keep the legacy flag in sync for older code/data.
-    $allow_multiple = $attempt_mode > 0 ? 1 : 0;
-
     if ($id) {
-        $stmt = $pdo->prepare("UPDATE exams SET title=?, description=?, start_time=?, end_time=?, duration_minutes=?, shuffle_questions=?, shuffle_answers=?, show_results=?, enable_prediction=?, allow_multiple=?, attempt_mode=? WHERE id=?");
-        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $allow_multiple, $attempt_mode, $id]);
+        $stmt = $pdo->prepare("UPDATE exams SET title=?, description=?, start_time=?, end_time=?, duration_minutes=?, shuffle_questions=?, shuffle_answers=?, show_results=?, enable_prediction=?, attempt_mode=? WHERE id=?");
+        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $attempt_mode, $id]);
         redirect("exam_questions.php?id=$id");
     } else {
-        $stmt = $pdo->prepare("INSERT INTO exams (title, description, start_time, end_time, duration_minutes, shuffle_questions, shuffle_answers, show_results, enable_prediction, allow_multiple, attempt_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $allow_multiple, $attempt_mode]);
+        $stmt = $pdo->prepare("INSERT INTO exams (title, description, start_time, end_time, duration_minutes, shuffle_questions, shuffle_answers, show_results, enable_prediction, attempt_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$title, $description, $start_time, $end_time, $duration_minutes, $shuffle_questions, $shuffle_answers, $show_results, $enable_prediction, $attempt_mode]);
         $new_id = $pdo->lastInsertId();
         redirect("exam_questions.php?id=$new_id");
     }
 }
 
-// Existing exams only have the legacy allow_multiple flag.
-$attempt_mode = isset($exam['attempt_mode']) ? (int)$exam['attempt_mode'] : (($exam['allow_multiple'] ?? 0) ? 1 : 0);
+$attempt_mode = (int)($exam['attempt_mode'] ?? 0);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -108,11 +104,6 @@ require_once __DIR__ . '/../includes/header.php';
                         <label class="form-check-label fw-bold text-primary" for="enable_prediction">Yêu cầu Dự đoán số người tham gia (Cuối đề thi)</label>
                     </div>
 
-                    <div class="d-none">
-                        <input type="hidden" name="allow_multiple" value="0">
-                        <label class="form-check-label fw-bold text-success" for="allow_multiple">Cho phép thi nhiều lần (Thí sinh có thể thi lại sau khi đã nộp bài)</label>
-                    </div>
-                    
                     <button type="submit" class="btn btn-primary w-100">Lưu cấu hình & Chuyển tới chọn Câu hỏi</button>
                     <div class="mb-4 p-3 bg-light rounded border border-success border-opacity-25">
                         <div class="fw-bold text-success mb-2">Chế độ thi lại</div>

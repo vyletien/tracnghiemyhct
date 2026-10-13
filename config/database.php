@@ -13,7 +13,7 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
 
 // --- CẤU HÌNH DATABASE CHO CPANEL / HOSTING ---
 $host = '127.0.0.1';
-$dbname = 'tracnghiem';
+$dbname = 'tracnghiemyhct';
 $user = 'root';
 $pass = '';
 $charset = 'utf8mb4';

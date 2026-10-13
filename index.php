@@ -24,7 +24,7 @@ require_once __DIR__ . '/includes/header.php';
             $stmtAtt = $pdo->prepare("SELECT * FROM exam_attempts WHERE user_id = ? AND exam_id = ? ORDER BY id DESC LIMIT 1");
             $stmtAtt->execute([$user_id, $exam['id']]);
             $latest_attempt = $stmtAtt->fetch();
-            $attempt_mode = isset($exam['attempt_mode']) ? (int)$exam['attempt_mode'] : (($exam['allow_multiple'] ?? 0) ? 1 : 0);
+            $attempt_mode = (int)$exam['attempt_mode'];
             $has_attempt_today = false;
             if ($attempt_mode === 2) {
                 $stmtToday = $pdo->prepare("SELECT COUNT(*) FROM exam_attempts WHERE user_id = ? AND exam_id = ? AND is_submitted = 1 AND end_time >= ? AND end_time < ?");
