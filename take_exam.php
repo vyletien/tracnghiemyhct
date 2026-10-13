@@ -125,14 +125,51 @@ if ($exam['shuffle_answers']) {
 require_once __DIR__ . '/includes/header.php';
 ?>
 
+<style>
+    .exam-sticky-header {
+        transition: padding .2s ease, box-shadow .2s ease;
+    }
+
+    @media (max-width: 767.98px) {
+        .exam-sticky-header {
+            gap: .5rem;
+            flex-wrap: nowrap;
+        }
+
+        .exam-title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .exam-sticky-header.is-scrolled .exam-title {
+            display: none;
+        }
+
+        .exam-sticky-header.is-scrolled {
+            justify-content: flex-end !important;
+            padding-top: .5rem;
+            padding-bottom: .5rem;
+            box-shadow: 0 .125rem .35rem rgba(0, 0, 0, .12);
+        }
+
+        #countdownTimer {
+            flex: 0 0 auto;
+            font-size: 1.1rem !important;
+            padding: .4rem .65rem !important;
+        }
+    }
+</style>
+
 <div class="row">
     <div class="col-md-9">
         <form id="examForm" method="POST" action="submit_exam.php">
             <?= csrf_field() ?>
             <input type="hidden" name="attempt_id" value="<?= $attempt['id'] ?>">
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center sticky-top" style="top: 0; z-index: 1000;">
-                    <h4 class="mb-0 text-primary"><?= h($exam['title']) ?></h4>
+                <div class="card-header bg-white d-flex justify-content-between align-items-center sticky-top exam-sticky-header" style="top: 0; z-index: 1000;">
+                    <h4 class="mb-0 text-primary exam-title"><?= h($exam['title']) ?></h4>
                     <div class="fw-bold fs-5 text-danger border p-2 rounded bg-light" id="countdownTimer">
                         00:00:00
                     </div>
@@ -297,6 +334,17 @@ require_once __DIR__ . '/includes/header.php';
             document.getElementById('examForm').submit();
         }
     });
+
+    // On mobile, keep only the countdown visible after the exam page is scrolled.
+    const examStickyHeader = document.querySelector('.exam-sticky-header');
+    function updateExamStickyHeader() {
+        if (examStickyHeader) {
+            examStickyHeader.classList.toggle('is-scrolled', window.innerWidth <= 767 && window.scrollY > 24);
+        }
+    }
+    window.addEventListener('scroll', updateExamStickyHeader, { passive: true });
+    window.addEventListener('resize', updateExamStickyHeader);
+    updateExamStickyHeader();
 
     // Highlight current looking question
     window.addEventListener('scroll', function() {

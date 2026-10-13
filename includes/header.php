@@ -7,7 +7,16 @@ require_once __DIR__ . '/functions.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần mềm Trắc nghiệm</title>
+    <title>Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ</title>
+    <meta name="description" content="Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ">
+    <meta property="og:description" content="Tham gia Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ trực tuyến.">
+    <meta property="og:url" content="/login.php">
+    <meta property="og:image" content="/assets/og-zalo.png">
+    <meta property="og:image:width" content="1742">
+    <meta property="og:image:height" content="900">
+    <meta property="og:image:type" content="image/png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -39,13 +48,19 @@ require_once __DIR__ . '/functions.php';
         .question-nav:hover { background-color: #e9ecef; }
         .question-nav.answered { background-color: #198754; color: white; border-color: #198754; }
         .question-nav.active { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); border-color: #0d6efd; }
+        .navbar-brand { white-space: normal; line-height: 1.2; font-weight: 600; }
+        @media (max-width: 575.98px) {
+            .navbar > .container { position: relative; justify-content: center; }
+            .navbar-brand { flex: 1 1 100%; min-width: 0; padding: 0 48px; text-align: center; font-size: 1rem; font-weight: 700; }
+            .navbar-toggler { position: absolute; right: 12px; top: 7px; }
+        }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
   <div class="container">
-    <a class="navbar-brand" href="/index.php"><i class="bi bi-journal-check"></i> Trắc Nghiệm Online</a>
+    <a class="navbar-brand" href="/index.php">Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -60,6 +75,9 @@ require_once __DIR__ . '/functions.php';
         </li>
         <li class="nav-item">
           <a class="nav-link" href="/admin/exams.php">Quản lý đề thi</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/admin/units.php">Quản lý đơn vị</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="/admin/reports.php">Báo cáo</a>

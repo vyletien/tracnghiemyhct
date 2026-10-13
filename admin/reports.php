@@ -28,32 +28,64 @@ if (!$exam_id) {
     $stmtActual->execute([$exam_id]);
     $actual_participants_for_ranking = $stmtActual->fetchColumn();
 
-    // Fetch attempts with refined ranking - LIMIT 200 for display
+    // A participant may submit multiple times, but only one result is recognized.
+    // Ranking: highest score, shortest duration, then closest prediction.
     $stmtAtt = $pdo->prepare("
-        SELECT ea.*, u.fullname, u.username, u.phone, u.address
+        SELECT ea.*, u.fullname, u.username, u.phone, un.name AS unit_name
         FROM exam_attempts ea 
-        JOIN users u ON ea.user_id = u.id 
+        JOIN users u ON ea.user_id = u.id
+        LEFT JOIN units un ON u.unit_id = un.id
         WHERE ea.exam_id = ? AND ea.is_submitted = 1
-        ORDER BY 
-            ea.score DESC, 
-            (ea.prediction_value IS NULL) ASC,
-            (CAST(COALESCE(ea.prediction_value, 0) AS SIGNED) >= ?) DESC,
-            ABS(CAST(COALESCE(ea.prediction_value, 0) AS SIGNED) - ?) ASC, 
-            ea.start_time ASC
-        LIMIT 200
+        ORDER BY ea.user_id ASC, ea.score DESC, ea.start_time ASC
     ");
-    $stmtAtt->execute([$exam_id, $actual_participants_for_ranking, $actual_participants_for_ranking]);
-    $attempts = $stmtAtt->fetchAll();
+    $stmtAtt->execute([$exam_id]);
+    $all_attempts = $stmtAtt->fetchAll();
+
+    $best_attempts_by_user = [];
+    foreach ($all_attempts as $attempt) {
+        $start = strtotime($attempt['start_time']);
+        $end = strtotime($attempt['end_time']);
+        $attempt['_duration'] = ($start !== false && $end !== false) ? max(0, $end - $start) : PHP_INT_MAX;
+        $attempt['_prediction_distance'] = $attempt['prediction_value'] === null
+            ? PHP_INT_MAX
+            : abs((int)$attempt['prediction_value'] - (int)$actual_participants_for_ranking);
+
+        $user_key = (string)$attempt['user_id'];
+        if (!isset($best_attempts_by_user[$user_key])) {
+            $best_attempts_by_user[$user_key] = $attempt;
+            continue;
+        }
+
+        $current = $best_attempts_by_user[$user_key];
+        $is_better = (float)$attempt['score'] > (float)$current['score']
+            || ((float)$attempt['score'] === (float)$current['score'] && $attempt['_duration'] < $current['_duration'])
+            || ((float)$attempt['score'] === (float)$current['score'] && $attempt['_duration'] === $current['_duration'] && $attempt['_prediction_distance'] < $current['_prediction_distance'])
+            || ((float)$attempt['score'] === (float)$current['score'] && $attempt['_duration'] === $current['_duration'] && $attempt['_prediction_distance'] === $current['_prediction_distance'] && $attempt['id'] < $current['id']);
+
+        if ($is_better) {
+            $best_attempts_by_user[$user_key] = $attempt;
+        }
+    }
+
+    $recognized_attempts = array_values($best_attempts_by_user);
+    usort($recognized_attempts, function ($a, $b) {
+        return ((float)$b['score'] <=> (float)$a['score'])
+            ?: ($a['_duration'] <=> $b['_duration'])
+            ?: ($a['_prediction_distance'] <=> $b['_prediction_distance'])
+            ?: ($a['id'] <=> $b['id']);
+    });
     
     // Stats for other cards (Calculate from ALL attempts, not just the limited 200)
-    $stmtStats = $pdo->prepare("SELECT COUNT(*) as total, MAX(score) as max_score, MIN(score) as min_score, AVG(score) as avg_score FROM exam_attempts WHERE exam_id = ? AND is_submitted = 1");
-    $stmtStats->execute([$exam_id]);
-    $rowStats = $stmtStats->fetch();
-    
-    $total = $rowStats['total'] ?? 0;
-    $max = $rowStats['max_score'] ?? 0;
-    $min = $rowStats['min_score'] ?? 0;
-    $avg = isset($rowStats['avg_score']) ? round($rowStats['avg_score'], 2) : 0;
+    $recognized_scores = array_map(static function ($attempt) {
+        return (float)($attempt['score'] ?? 0);
+    }, $recognized_attempts);
+    $total = count($recognized_scores);
+    $max = $total ? max($recognized_scores) : 0;
+    $min = $total ? min($recognized_scores) : 0;
+    $avg = $total ? round(array_sum($recognized_scores) / $total, 2) : 0;
+
+    // The report table shows only the first 200 recognized results.
+    $attempts = array_slice($recognized_attempts, 0, 200);
 }
 
 require_once __DIR__ . '/../includes/header.php';
@@ -138,7 +170,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <th>STT</th>
                         <th>Họ tên</th>
                         <th>SĐT</th>
-                        <th>Địa chỉ</th>
+                        <th>Đơn vị</th>
                         <th>Câu dự đoán</th>
                         <th>Thời gian Bắt đầu</th>
                         <th>Giây làm bài</th>
@@ -155,7 +187,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <td><?= $stt++ ?></td>
                         <td><?= h($a['fullname']) ?></td>
                         <td><?= h($a['phone'] ?: 'N/A') ?></td>
-                        <td><?= h($a['address'] ?: 'N/A') ?></td>
+                        <td><?= h($a['unit_name'] ?: 'Chưa xác định') ?></td>
                         <td><?= h($a['prediction_value'] ?? '-') ?></td>
                         <td><?= date('d/m/Y H:i:s', $t1) ?></td>
                         <td><?= $secs ?> giây</td>

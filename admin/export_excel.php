@@ -28,9 +28,10 @@ $actual_participants_for_ranking = $stmtActual->fetchColumn();
 
 // Fetch attempts with refined ranking
 $stmtAtt = $pdo->prepare("
-    SELECT ea.*, u.fullname, u.username, u.phone, u.address
+    SELECT ea.*, u.fullname, u.username, u.phone, un.name AS unit_name
     FROM exam_attempts ea 
-    JOIN users u ON ea.user_id = u.id 
+    JOIN users u ON ea.user_id = u.id
+    LEFT JOIN units un ON u.unit_id = un.id
     WHERE ea.exam_id = ? AND ea.is_submitted = 1
     ORDER BY 
         ea.score DESC, 
@@ -69,7 +70,7 @@ echo '<table border="1">
             <th>STT</th>
             <th>Họ Tên</th>
             <th>Số Điện Thoại</th>
-            <th>Địa Chỉ</th>
+            <th>Đơn vị</th>
             <th>Câu dự đoán</th>
             <th>Thời gian bắt đầu</th>
             <th>Thời gian nộp bài</th>
@@ -88,7 +89,7 @@ foreach ($attempts as $a) {
         <td>' . $stt++ . '</td>
         <td>' . htmlspecialchars($a['fullname']) . '</td>
         <td>' . htmlspecialchars($a['phone'] ?: 'N/A') . '</td>
-        <td>' . htmlspecialchars($a['address'] ?: 'N/A') . '</td>
+        <td>' . htmlspecialchars($a['unit_name'] ?: 'Chưa xác định') . '</td>
         <td>' . ($a['prediction_value'] ?? '-') . '</td>
         <td>' . date('d/m/Y H:i:s', $t1) . '</td>
         <td>' . date('d/m/Y H:i:s', $t2) . '</td>

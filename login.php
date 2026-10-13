@@ -2,40 +2,53 @@
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
 
+// Social networks and browsers may append arbitrary tracking parameters.
+// Ignore all query strings and always start from a clean login URL.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_SERVER['QUERY_STRING'] ?? '') !== '') {
+    redirect('/login.php');
+}
+
 if (isLoggedIn()) {
     redirect('/index.php');
 }
 
+$units = $pdo->query("SELECT id, name FROM units ORDER BY name ASC")->fetchAll();
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     if (isset($_POST['login_type']) && $_POST['login_type'] === 'guest') {
-        // Guest login logic
         $fullname = trim($_POST['fullname'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
-        $address_detail = trim($_POST['address_detail'] ?? '');
-        $ward = trim($_POST['ward'] ?? '');
-        $address = $address_detail . ' - ' . $ward;
+        $phone = preg_replace('/[\s.\-()]+/', '', trim($_POST['phone'] ?? ''));
+        $unit_id = filter_input(INPUT_POST, 'unit_id', FILTER_VALIDATE_INT);
 
-        if ($fullname && $phone) {
-            // Check if phone exists
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE phone = ?");
+        $unitStmt = $pdo->prepare("SELECT id FROM units WHERE id = ?");
+        $unitStmt->execute([$unit_id ?: 0]);
+        $validUnitId = $unitStmt->fetchColumn();
+
+        if ($fullname === '' || $phone === '' || !$unit_id) {
+            $error = 'Vui lòng nhập đầy đủ họ tên, số điện thoại và chọn đơn vị!';
+        } elseif (mb_strlen($fullname) > 100) {
+            $error = 'Họ tên không được dài quá 100 ký tự!';
+        } elseif (!preg_match('/^(?:\+84|0)\d{8,10}$/', $phone)) {
+            $error = 'Số điện thoại không đúng định dạng!';
+        } elseif (!$validUnitId) {
+            $error = 'Đơn vị đã chọn không tồn tại. Vui lòng chọn lại!';
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE phone = ? AND role = 'student' ORDER BY id ASC LIMIT 1");
             $stmt->execute([$phone]);
             $user = $stmt->fetch();
 
             if (!$user) {
-                // Create guest user
-                $username = 'guest_' . $phone;
-                $stmtIns = $pdo->prepare("INSERT INTO users (username, password, fullname, phone, address, role) VALUES (?, NULL, ?, ?, ?, 'student')");
-                $stmtIns->execute([$username, $fullname, $phone, $address]);
-                $user_id = $pdo->lastInsertId();
-                
+                $username = 'guest_' . sha1($phone);
+                $stmtIns = $pdo->prepare("INSERT INTO users (username, password, fullname, phone, unit_id, role) VALUES (?, NULL, ?, ?, ?, 'student')");
+                $stmtIns->execute([$username, $fullname, $phone, $unit_id]);
                 $stmt->execute([$phone]);
                 $user = $stmt->fetch();
             } else {
-                // Update info if existing
-                $stmtUpd = $pdo->prepare("UPDATE users SET fullname = ?, address = ? WHERE id = ?");
-                $stmtUpd->execute([$fullname, $address, $user['id']]);
+                $stmtUpd = $pdo->prepare("UPDATE users SET fullname = ?, unit_id = ? WHERE id = ?");
+                $stmtUpd->execute([$fullname, $unit_id, $user['id']]);
+                $user['fullname'] = $fullname;
+                $user['unit_id'] = $unit_id;
             }
 
             session_regenerate_id(true);
@@ -45,8 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role'];
             
             redirect('/index.php');
-        } else {
-            $error = 'Vui lòng nhập đầy đủ Họ tên và Số điện thoại!';
         }
     } else {
         // Standard login
@@ -101,63 +112,28 @@ require_once __DIR__ . '/includes/header.php';
                         <h4 class="fw-bold text-primary">THÔNG TIN THÍ SINH</h4>
                         <p class="text-muted small">Nhập thông tin cá nhân để bắt đầu bài thi</p>
                     </div>
-                    <form method="POST">
+                    <form method="POST" action="/login.php">
                         <?= csrf_field() ?>
                         <input type="hidden" name="login_type" value="guest">
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Họ và tên <span class="text-danger">*</span></label>
-                            <input type="text" name="fullname" class="form-control form-control-lg bg-light border-0" placeholder="VD: Nguyễn Văn A" required>
+                            <input type="text" name="fullname" class="form-control form-control-lg bg-light border-0" maxlength="100" value="<?= h($_POST['fullname'] ?? '') ?>" placeholder="VD: Nguyễn Thị B" autocomplete="name" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Số điện thoại <span class="text-danger">*</span></label>
-                            <input type="text" name="phone" class="form-control form-control-lg bg-light border-0" placeholder="VD: 0912..." required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Địa chỉ (Số nhà, tên đường, thôn, xóm, làng...) <span class="text-danger">*</span></label>
-                            <input type="text" name="address_detail" class="form-control form-control-lg bg-light border-0" placeholder="VD: Số 123 Nguyễn Huệ..." required>
+                            <input type="tel" name="phone" class="form-control form-control-lg bg-light border-0" maxlength="20" value="<?= h($_POST['phone'] ?? '') ?>" placeholder="VD: 0912..." autocomplete="tel" inputmode="tel" required>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label fw-bold small">Xã/Phường <span class="text-danger">*</span></label>
-                            <select name="ward" class="form-select form-select-lg bg-light border-0" required>
-                                <option value="">-- Chọn Xã/Phường --</option>
-                                <?php
-                                $wards = [
-                                    "Ban Phụ nữ Công an tỉnh", "Hội Phụ nữ cơ quan BCH Quân sự tỉnh",
-                                    "Phường An Bình", "Phường An Khê", "Phường An Nhơn", "Phường An Nhơn Bắc",
-                                    "Phường An Nhơn Đông", "Phường An Nhơn Nam", "Phường An Phú", "Phường Ayun Pa",
-                                    "Phường Bình Định", "Phường Bồng Sơn", "Phường Diên Hồng", "Phường Hoài Nhơn",
-                                    "Phường Hoài Nhơn Bắc", "Phường Hoài Nhơn Đông", "Phường Hoài Nhơn Nam", "Phường Hoài Nhơn Tây",
-                                    "Phường Hội Phú", "Phường Pleiku", "Phường Quy Nhơn", "Phường Quy Nhơn Bắc",
-                                    "Phường Quy Nhơn Đông", "Phường Quy Nhơn Nam", "Phường Quy Nhơn Tây", "Phường Tam Quan",
-                                    "Phường Thống Nhất", "Xã Albá", "Xã An Hoà", "Xã An Lão", "Xã An Lương",
-                                    "Xã An Nhơn Tây", "Xã An Toàn", "Xã An Vinh", "Xã Ayun", "Xã Ân Hảo",
-                                    "Xã Ân Tường", "Xã Bàu Cạn", "Xã Biển Hồ", "Xã Bình An", "Xã Bình Dương",
-                                    "Xã Bình Hiệp", "Xã Bình Khê", "Xã Bình Phú", "Xã Bờ Ngoong", "Xã Canh Liên",
-                                    "Xã Canh Vinh", "Xã Cát Tiến", "Xã Cửu An", "Xã Chơ Long", "Xã Chư A Thai",
-                                    "Xã Chư Krey", "Xã Chư Păh", "Xã Chư Prông", "Xã Chư Pưh", "Xã Chư Sê",
-                                    "Xã Đak Đoa", "Xã Đak Pơ", "Xã Đak Rong", "Xã Đak Sơmei", "Xã Đăk Song",
-                                    "Xã Đề Gi", "Xã Đức Cơ", "Xã Gào", "Xã Hoà Hội", "Xã Hoài Ân",
-                                    "Xã Hội Sơn", "Xã Hra", "Xã Ia Băng", "Xã Ia Boòng", "Xã Ia Chia",
-                                    "Xã Ia Dom", "Xã Ia Dơk", "Xã Ia Dreh", "Xã Ia Grai", "Xã Ia Hiao",
-                                    "Xã Ia Hrú", "Xã Ia Hrung", "Xã Ia Ko", "Xã Ia Krái", "Xã Ia Krêl",
-                                    "Xã Ia Khươl", "Xã Ia Lâu", "Xã Ia Le", "Xã Ia Ly", "Xã Ia Mơ",
-                                    "Xã Ia Nan", "Xã Ia O", "Xã Ia Pa", "Xã Ia Pia", "Xã Ia Pnôn",
-                                    "Xã Ia Púch", "Xã Ia Phí", "Xã Ia Rbol", "Xã Ia Rsai", "Xã Ia Sao",
-                                    "Xã Ia Tôr", "Xã Ia Tul", "Xã Kbang", "Xã KDang", "Xã Kim Sơn",
-                                    "Xã Kon Chiêng", "Xã Kon Gang", "Xã Kông Bơ La", "Xã Kông Chro", "Xã Krong",
-                                    "Xã Lơ Pang", "Xã Mang Yang", "Xã Ngô Mây", "Xã Nhơn Châu", "Xã Pờ Tó",
-                                    "Xã Phù Cát", "Xã Phù Mỹ", "Xã Phù Mỹ Bắc", "Xã Phù Mỹ Đông", "Xã Phù Mỹ Nam",
-                                    "Xã Phù Mỹ Tây", "Xã Phú Túc", "Xã Phú Thiện", "Xã Sơn Lang", "Xã SRó",
-                                    "Xã Tây Sơn", "Xã Tơ Tung", "Xã Tuy Phước", "Xã Tuy Phước Bắc", "Xã Tuy Phước Đông",
-                                    "Xã Tuy Phước Tây", "Xã Uar", "Xã Vạn Đức", "Xã Vân Canh", "Xã Vĩnh Quang",
-                                    "Xã Vĩnh Sơn", "Xã Vĩnh Thạnh", "Xã Vĩnh Thịnh", "Xã Xuân An", "Xã Ya Hội", "Xã Ya Ma"
-                                ];
-                                foreach ($wards as $w) {
-                                    echo "<option value=\"" . h($w) . "\">" . h($w) . "</option>";
-                                }
-                                ?>
+                            <label class="form-label fw-bold small">Đơn vị <span class="text-danger">*</span></label>
+                            <select name="unit_id" class="form-select form-select-lg bg-light border-0" required>
+                                <option value="">-- Chọn đơn vị --</option>
+                                <?php foreach ($units as $unit): ?>
+                                    <option value="<?= (int)$unit['id'] ?>" <?= (string)($_POST['unit_id'] ?? '') === (string)$unit['id'] ? 'selected' : '' ?>><?= h($unit['name']) ?></option>
+                                <?php endforeach; ?>
                             </select>
-                            <div class="form-text mt-1 text-primary small"><i class="bi bi-info-circle"></i> Yêu cầu chọn Xã/Phường để ban giám khảo có thể liên hệ.</div>
+                            <?php if (!$units): ?>
+                                <div class="form-text mt-1 text-danger"><i class="bi bi-exclamation-circle"></i> Chưa có đơn vị. Vui lòng liên hệ quản trị viên.</div>
+                            <?php endif; ?>
                         </div>
                         <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">BẮT ĐẦU <i class="bi bi-chevron-right"></i></button>
                     </form>
@@ -169,7 +145,7 @@ require_once __DIR__ . '/includes/header.php';
                         <h4 class="fw-bold text-dark">QUẢN TRỊ VIÊN</h4>
                         <p class="text-muted small">Đăng nhập để quản lý đề thi và báo cáo</p>
                     </div>
-                    <form method="POST">
+                    <form method="POST" action="/login.php">
                         <?= csrf_field() ?>
                         <input type="hidden" name="login_type" value="member">
                         <div class="mb-3">

@@ -3,7 +3,16 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
 
 checkLogin();
-verify_csrf();
+
+// The exam page may trigger an automatic submission after the server-side
+// deadline. This request is still restricted to the logged-in owner below;
+// normal manual submissions must continue to pass CSRF validation.
+$is_auto_submit = $_SERVER['REQUEST_METHOD'] === 'GET'
+    && isset($_GET['auto'])
+    && $_GET['auto'] === '1';
+if (!$is_auto_submit) {
+    verify_csrf();
+}
 
 $attempt_id = $_POST['attempt_id'] ?? $_GET['attempt_id'] ?? null;
 if (!$attempt_id) redirect('/index.php');
@@ -22,7 +31,7 @@ if (!$attempt || $attempt['is_submitted']) {
 $exam_id = $attempt['exam_id'];
 
 // Enforce the deadline on the server; client-side JavaScript can be modified.
-if ($attempt['end_time'] && strtotime($attempt['end_time']) <= time()) {
+if (!$is_auto_submit && $attempt['end_time'] && strtotime($attempt['end_time']) <= time()) {
     http_response_code(403);
     exit('Đã hết thời gian làm bài.');
 }

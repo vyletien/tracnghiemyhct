@@ -1,14 +1,28 @@
 CREATE DATABASE IF NOT EXISTS tracnghiem CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE tracnghiem;
 
+CREATE TABLE IF NOT EXISTS units (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NULL,
     fullname VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NULL,
+    address VARCHAR(255) NULL,
+    unit_id INT NULL,
     role ENUM('admin', 'student') DEFAULT 'student',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE RESTRICT
 );
+
+INSERT IGNORE INTO units (name) VALUES
+('Ban Phụ nữ Công an tỉnh'),
+('Hội Phụ nữ cơ quan BCH Quân sự tỉnh');
 
 CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -66,6 +80,7 @@ CREATE TABLE IF NOT EXISTS exam_attempts (
     end_time DATETIME NULL,
     score DECIMAL(5,2) DEFAULT NULL,
     is_submitted BOOLEAN DEFAULT FALSE,
+    prediction_value INT DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
 );
@@ -82,4 +97,4 @@ CREATE TABLE IF NOT EXISTS attempt_answers (
 
 -- Pass admin default: admin / Hoiphunu@789
 INSERT INTO users (username, password, fullname, role) VALUES 
-('admin', '$2a$12$hT4IPEZUXW2n/KhETXoiAeo1W9CKYW7uQRN/ey0QIIXyvlH0kFXIi', 'Administrator', 'admin')
+('admin', '$2a$12$hT4IPEZUXW2n/KhETXoiAeo1W9CKYW7uQRN/ey0QIIXyvlH0kFXIi', 'Administrator', 'admin');

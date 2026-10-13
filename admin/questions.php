@@ -65,7 +65,7 @@ require_once __DIR__ . '/../includes/header.php';
     <table class="table table-bordered table-hover align-middle bg-white">
         <thead class="table-light">
             <tr>
-                <th width="5%">ID</th>
+                <th width="5%">STT</th>
                 <th width="45%">Nội dung câu hỏi</th>
                 <th width="15%">Loại</th>
                 <th width="15%">Mức độ</th>
@@ -73,9 +73,9 @@ require_once __DIR__ . '/../includes/header.php';
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($questions as $q): ?>
+            <?php $stt = count($questions); foreach ($questions as $q): ?>
             <tr>
-                <td><?= $q['id'] ?></td>
+                <td><?= $stt-- ?></td>
                 <td>
                     <!-- Dùng strip_tags để hiển thị text preview ngắn gọn -->
                     <?= mb_strimwidth(strip_tags($q['content']), 0, 100, '...') ?>
@@ -95,7 +95,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </td>
                 <td class="text-center">
                     <a href="question_edit.php?id=<?= $q['id'] ?>" class="btn btn-sm btn-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
-                    <a href="question_delete.php?id=<?= $q['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa câu hỏi này cùng các đáp án?');" title="Xóa"><i class="bi bi-trash"></i></a>
+                    <a href="question_delete.php?id=<?= $q['id'] ?>" class="btn btn-sm btn-danger" title="Xóa"><i class="bi bi-trash"></i></a>
                 </td>
             </tr>
             <?php endforeach; ?>

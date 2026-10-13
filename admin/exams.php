@@ -47,7 +47,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <td class="text-center">
                     <a href="exam_questions.php?id=<?= $e['id'] ?>" class="btn btn-sm btn-info" title="Danh sách câu hỏi"><i class="bi bi-list-task"></i> Câu hỏi</a>
                     <a href="exam_edit.php?id=<?= $e['id'] ?>" class="btn btn-sm btn-primary" title="Cấu hình"><i class="bi bi-gear"></i></a>
-                    <a href="exam_delete.php?id=<?= $e['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Xóa đề thi này?');" title="Xóa"><i class="bi bi-trash"></i></a>
+                    <a href="exam_delete.php?id=<?= $e['id'] ?>" class="btn btn-sm btn-danger" title="Xóa"><i class="bi bi-trash"></i></a>
                 </td>
             </tr>
             <?php endforeach; ?>
