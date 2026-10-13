@@ -129,7 +129,6 @@ require_once __DIR__ . '/../includes/header.php';
                             <option value="">-- Không chọn --</option>
                             <?php foreach($categories as $cat): ?>
                             <option value="<?= $cat['id'] ?>" <?= ($qData['category_id'] ?? '') == $cat['id'] ? 'selected' : '' ?>><?= h($cat['name']) ?></option>
-                            <?php endform; // wait, endforeach ?>
                             <?php endforeach; ?>
                         </select>
                     </div>
