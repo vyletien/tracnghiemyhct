@@ -14,6 +14,7 @@
 - Thi trực tuyến với thời gian đếm ngược.
 - Tự động chấm điểm và xem lịch sử thi.
 - Xuất báo cáo kết quả thi ra Excel.
+- Database mới có sẵn một danh mục, 5 câu hỏi và một đề thi mẫu 15 phút để kiểm thử.
 
 ## Hướng dẫn cài đặt trên cPanel / Hosting
 

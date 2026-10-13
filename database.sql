@@ -133,6 +133,65 @@ CREATE TABLE attempt_answers (
     CONSTRAINT fk_attempt_answers_answer FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Dữ liệu mẫu để kiểm thử nhanh hệ thống
+INSERT INTO categories (name) VALUES ('Mẫu kiểm tra YHCT');
+SET @demo_category_id = LAST_INSERT_ID();
+
+INSERT INTO questions (category_id, content, type, level) VALUES
+(@demo_category_id, 'Y học cổ truyền thường sử dụng phương pháp nào sau đây để chẩn đoán?', 'single', '1');
+SET @demo_q1 = LAST_INSERT_ID();
+INSERT INTO answers (question_id, content, is_correct) VALUES
+(@demo_q1, 'Tứ chẩn: vọng, văn, vấn, thiết', 1),
+(@demo_q1, 'Chỉ đo huyết áp', 0),
+(@demo_q1, 'Chỉ chụp X-quang', 0),
+(@demo_q1, 'Chỉ xét nghiệm máu', 0);
+
+INSERT INTO questions (category_id, content, type, level) VALUES
+(@demo_category_id, 'Mục tiêu quan trọng của phục hồi chức năng là gì?', 'single', '1');
+SET @demo_q2 = LAST_INSERT_ID();
+INSERT INTO answers (question_id, content, is_correct) VALUES
+(@demo_q2, 'Giúp người bệnh đạt mức độc lập tối đa trong sinh hoạt', 1),
+(@demo_q2, 'Chỉ điều trị bằng thuốc', 0),
+(@demo_q2, 'Kéo dài thời gian nằm viện', 0),
+(@demo_q2, 'Thay thế hoàn toàn mọi hoạt động của người bệnh', 0);
+
+INSERT INTO questions (category_id, content, type, level) VALUES
+(@demo_category_id, 'Khoa, Phòng nào sau đây thuộc danh sách đơn vị mặc định của bệnh viện?', 'single', '2');
+SET @demo_q3 = LAST_INSERT_ID();
+INSERT INTO answers (question_id, content, is_correct) VALUES
+(@demo_q3, 'Khoa Dược', 1),
+(@demo_q3, 'Khoa Hàng không', 0),
+(@demo_q3, 'Phòng Hàng hải', 0),
+(@demo_q3, 'Khoa Thiết kế', 0);
+
+INSERT INTO questions (category_id, content, type, level) VALUES
+(@demo_category_id, 'Những yếu tố nào góp phần hỗ trợ phục hồi chức năng hiệu quả? (Chọn nhiều đáp án)', 'multiple', '2');
+SET @demo_q4 = LAST_INSERT_ID();
+INSERT INTO answers (question_id, content, is_correct) VALUES
+(@demo_q4, 'Tập luyện phù hợp và đều đặn', 1),
+(@demo_q4, 'Sự phối hợp của gia đình', 1),
+(@demo_q4, 'Bỏ qua hướng dẫn của nhân viên y tế', 0),
+(@demo_q4, 'Tự ý ngừng chương trình tập luyện', 0);
+
+INSERT INTO questions (category_id, content, type, level) VALUES
+(@demo_category_id, 'Khi tham gia thi trực tuyến, thí sinh cần làm gì sau khi hoàn thành bài?', 'single', '1');
+SET @demo_q5 = LAST_INSERT_ID();
+INSERT INTO answers (question_id, content, is_correct) VALUES
+(@demo_q5, 'Kiểm tra lại đáp án và bấm Nộp bài', 1),
+(@demo_q5, 'Đóng trình duyệt ngay lập tức', 0),
+(@demo_q5, 'Đăng xuất trước khi nộp bài', 0),
+(@demo_q5, 'Xóa lịch sử trình duyệt', 0);
+
+INSERT INTO exams (title, description, duration_minutes, shuffle_questions, shuffle_answers, show_results, enable_prediction, attempt_mode)
+VALUES ('Đề mẫu - Kiến thức Y học cổ truyền và Phục hồi chức năng', 'Đề thi mẫu gồm 5 câu hỏi để kiểm thử quy trình tạo đề, vào thi và nộp bài.', 15, 0, 0, 1, 0, 1);
+SET @demo_exam_id = LAST_INSERT_ID();
+INSERT INTO exam_questions (exam_id, question_id) VALUES
+(@demo_exam_id, @demo_q1),
+(@demo_exam_id, @demo_q2),
+(@demo_exam_id, @demo_q3),
+(@demo_exam_id, @demo_q4),
+(@demo_exam_id, @demo_q5);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Tài khoản quản trị mặc định (mật khẩu được lưu dưới dạng BCrypt)
