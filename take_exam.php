@@ -88,6 +88,12 @@ if (!$attempt) {
 $pdo->prepare("INSERT INTO exam_cheat_events (attempt_id, event_type, event_detail) VALUES (?, 'page_open', ?)")
     ->execute([$attempt['id'], 'Mở hoặc tiếp tục trang thi']);
 
+$stmtWarnings = $pdo->prepare("SELECT COUNT(*) FROM exam_cheat_events
+    WHERE attempt_id = ?
+      AND event_type IN ('tab_hidden', 'page_unload', 'copy', 'cut', 'paste', 'context_menu', 'devtools_shortcut')");
+$stmtWarnings->execute([$attempt['id']]);
+$savedWarningCount = (int)$stmtWarnings->fetchColumn();
+
 // Ensure end_time is not in the past
 if ($exam['duration_minutes'] > 0) {
     $time_left_seconds = strtotime($attempt['end_time']) - time();
@@ -258,7 +264,9 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
             </div>
-            <div id="cheatWarning" class="alert alert-warning d-none" role="alert"></div>
+            <div id="cheatWarning" class="alert alert-warning <?= $savedWarningCount > 0 ? '' : 'd-none' ?>" role="alert">
+                <?= $savedWarningCount > 0 ? 'Cảnh báo: hệ thống đã ghi nhận ' . $savedWarningCount . ' hành vi rời bài thi hoặc thao tác không được phép trong lượt thi này.' : '' ?>
+            </div>
         </div>
     </div>
 </div>
@@ -271,7 +279,7 @@ require_once __DIR__ . '/includes/header.php';
     const attemptId = <?= (int)$attempt['id'] ?>;
     const csrfToken = <?= json_encode(csrf_token()) ?>;
     let wasHidden = false;
-    let warningCount = 0;
+    let warningCount = <?= $savedWarningCount ?>;
     let isSubmitting = false;
     const examForm = document.getElementById('examForm');
 
