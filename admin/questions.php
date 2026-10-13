@@ -8,7 +8,19 @@ checkAdmin();
 $typeFilter = $_GET['type'] ?? '';
 $levelFilter = $_GET['level'] ?? '';
 
-$query = "SELECT q.*, c.name as category_name FROM questions q LEFT JOIN categories c ON q.category_id = c.id WHERE 1=1";
+$query = "SELECT q.*, c.name as category_name,
+                 COALESCE(a.answer_count, 0) AS answer_count,
+                 COALESCE(a.correct_count, 0) AS correct_count
+          FROM questions q
+          LEFT JOIN categories c ON q.category_id = c.id
+          LEFT JOIN (
+              SELECT question_id,
+                     COUNT(*) AS answer_count,
+                     SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct_count
+              FROM answers
+              GROUP BY question_id
+          ) a ON a.question_id = q.id
+          WHERE 1=1";
 $params = [];
 
 if ($typeFilter) {
@@ -66,9 +78,10 @@ require_once __DIR__ . '/../includes/header.php';
         <thead class="table-light">
             <tr>
                 <th width="5%">STT</th>
-                <th width="45%">Nội dung câu hỏi</th>
-                <th width="15%">Loại</th>
-                <th width="15%">Mức độ</th>
+                <th width="40%">Nội dung câu hỏi</th>
+                <th width="13%">Loại</th>
+                <th width="12%">Mức độ</th>
+                <th width="15%" class="text-center">Đáp án</th>
                 <th width="20%" class="text-center">Thao tác</th>
             </tr>
         </thead>
@@ -94,6 +107,12 @@ require_once __DIR__ . '/../includes/header.php';
                     ?>
                 </td>
                 <td class="text-center">
+                    <span class="badge <?= (int)$q['answer_count'] > 0 ? 'bg-success' : 'bg-danger' ?>">
+                        <?= (int)$q['answer_count'] ?> lựa chọn
+                    </span>
+                    <div class="small text-muted mt-1"><?= (int)$q['correct_count'] ?> đáp án đúng</div>
+                </td>
+                <td class="text-center">
                     <a href="question_edit.php?id=<?= $q['id'] ?>" class="btn btn-sm btn-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
                     <a href="question_delete.php?id=<?= $q['id'] ?>" class="btn btn-sm btn-danger" title="Xóa"><i class="bi bi-trash"></i></a>
                 </td>
@@ -101,7 +120,7 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endforeach; ?>
             <?php if (count($questions) === 0): ?>
             <tr>
-                <td colspan="5" class="text-center">Chưa có câu hỏi nào.</td>
+                <td colspan="6" class="text-center">Chưa có câu hỏi nào.</td>
             </tr>
             <?php endif; ?>
         </tbody>
