@@ -5,6 +5,19 @@ function h($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+function getSiteSetting($pdo, $key, $default = '') {
+    static $settings = [];
+
+    if (!array_key_exists($key, $settings)) {
+        $stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $value = $stmt->fetchColumn();
+        $settings[$key] = $value === false ? $default : $value;
+    }
+
+    return $settings[$key];
+}
+
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
 }

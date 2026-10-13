@@ -1,17 +1,18 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/functions.php';
+$contestName = getSiteSetting($pdo, 'contest_name', 'Bệnh viện Y học cổ truyền và Phục hồi chức năng Quy Nhơn');
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ</title>
-    <meta name="description" content="Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ">
+    <title><?= h($contestName) ?></title>
+    <meta name="description" content="<?= h($contestName) ?>">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ">
-    <meta property="og:description" content="Tham gia Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ trực tuyến.">
+    <meta property="og:title" content="<?= h($contestName) ?>">
+    <meta property="og:description" content="Tham gia <?= h($contestName) ?> trực tuyến.">
     <meta property="og:url" content="/login.php">
     <meta property="og:image" content="/assets/og-zalo.png">
     <meta property="og:image:width" content="1742">
@@ -60,7 +61,7 @@ require_once __DIR__ . '/functions.php';
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
   <div class="container">
-    <a class="navbar-brand" href="/index.php">Cuộc thi Tìm hiểu Nghị quyết Đại hội đại biểu Phụ nữ</a>
+    <a class="navbar-brand" href="/index.php"><?= h($contestName) ?></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -81,6 +82,9 @@ require_once __DIR__ . '/functions.php';
         </li>
         <li class="nav-item">
           <a class="nav-link" href="/admin/reports.php">Báo cáo</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/admin/settings.php">Cấu hình</a>
         </li>
         <?php elseif (isLoggedIn()): ?>
         <li class="nav-item">
