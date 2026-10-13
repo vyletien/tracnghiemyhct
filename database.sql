@@ -18,6 +18,22 @@ CREATE TABLE units (
     UNIQUE KEY uq_units_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+INSERT INTO units (name) VALUES
+('Phòng Kế Hoạch Tổng Hợp – Chỉ Đạo Tuyến'),
+('Phòng Tổ chức – Hành chính'),
+('Phòng Tài Chính – Kế Toán'),
+('Phòng Điều Dưỡng'),
+('Khoa Châm cứu – Dưỡng sinh'),
+('Khoa Nội 1'),
+('Khoa Nội 2'),
+('Khoa Nội – Nhi'),
+('Khoa Phục Hồi Chức Năng'),
+('Khoa Khám Chữa – Bệnh Cấp Cứu'),
+('Khoa Ngoại – Phụ'),
+('Khoa Cận lâm sàng'),
+('Khoa Kiểm soát nhiễm khuẩn – Dinh dưỡng'),
+('Khoa Dược');
+
 CREATE TABLE users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
