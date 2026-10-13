@@ -71,24 +71,6 @@ $contestName = getSiteSetting($pdo, 'contest_name', 'BỆNH VIỆN YHCT & PHCN Q
         <li class="nav-item">
           <a class="nav-link" href="/admin/index.php">Quản trị</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/questions.php">Ngân hàng câu hỏi</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/exams.php">Quản lý đề thi</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/units.php">Quản lý đơn vị</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/participants.php">Thí sinh</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/reports.php">Báo cáo</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/admin/settings.php">Cấu hình</a>
-        </li>
         <?php elseif (isLoggedIn()): ?>
         <li class="nav-item">
           <a class="nav-link" href="/index.php">Danh sách đề thi</a>
