@@ -27,7 +27,7 @@ try {
     $pdo->exec($schema);
 
     echo "Thành công! Đã tạo database '{$database}' với cấu trúc dữ liệu mới.\n";
-    echo "Tài khoản quản trị mặc định: admin / Hoiphunu@789\n";
+    echo "Đã tạo tài khoản quản trị mặc định 'admin'.\n";
     echo "Hãy đăng nhập và tạo danh sách đơn vị trước khi mở hệ thống cho thí sinh.\n";
 } catch (Throwable $e) {
     echo "Lỗi: " . $e->getMessage() . "\n";

@@ -42,7 +42,7 @@ Lệnh này tạo database mới `tracnghiemyhct` và sẽ dừng nếu database
 
 ## Tài khoản mặc định
 
-- **Admin**: `admin` / `Hoiphunu@789`
+- **Admin**: `admin` (mật khẩu mặc định được cung cấp riêng, không công khai trong repository)
 - **Thí sinh**: Không cần tài khoản; nhập họ tên, số điện thoại và chọn đơn vị để vào thi.
 
 Sau lần đăng nhập đầu tiên, quản trị viên cần tạo danh sách đơn vị trong mục **Quản lý đơn vị**.

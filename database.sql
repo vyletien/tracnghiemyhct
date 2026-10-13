@@ -110,6 +110,6 @@ CREATE TABLE attempt_answers (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Tài khoản quản trị mặc định: admin / Hoiphunu@789
+-- Tài khoản quản trị mặc định (mật khẩu được lưu dưới dạng BCrypt)
 INSERT INTO users (username, password, fullname, role)
-VALUES ('admin', '$2a$12$hT4IPEZUXW2n/KhETXoiAeo1W9CKYW7uQRN/ey0QIIXyvlH0kFXIi', 'Administrator', 'admin');
+VALUES ('admin', '$2y$10$gW6yuYAncm/pJypCCpVdlu0wuRd/roVJoOODmWThy6OHuhQvtMjwa', 'Administrator', 'admin');
