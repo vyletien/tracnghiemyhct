@@ -6,6 +6,7 @@ composer.lock
 # Backup/Zip
 TracNghiem.zip
 tracnghiem_cpanel.sql
+TracNghiemYHCT-cpanel.zip
 
 # IDEs
 .vscode/

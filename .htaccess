@@ -1,0 +1,7 @@
+Options -Indexes
+
+# Không cho phép tải trực tiếp các file cấu hình, database và tài liệu nội bộ.
+<FilesMatch "^(database\.sql|README\.md|DEPLOY_CPANEL\.md|setup_db\.php|check\.php|cleanup_test\.php)$">
+    Require all denied
+</FilesMatch>
+
